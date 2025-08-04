@@ -31,7 +31,16 @@ const userSchema = new mongoose.Schema(
             ],
             default: [],
         },
-        loginAttemps: { type: Number, default: 0 },
+        journals: {
+            type: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "JournalEntry",
+                },
+            ],
+            default: [],
+        },
+        loginAttempts: { type: Number, default: 0 },
         lockUntil: { type: Date, default: null },
         isVerified: { type: Boolean, default: false },
         provider: {
