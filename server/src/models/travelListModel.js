@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import travelListSchema from "../schemas/travelListSchema";
+const mongoose = require("mongoose");
+const travelListSchema = require("../schemas/travelListSchema.js");
 
 const TravelListModel = mongoose.model("TravelList", travelListSchema);
 
-export default TravelListModel;
+module.exports = TravelListModel;

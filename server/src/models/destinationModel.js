@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import destinationSchema from "../schemas/destinationSchema";
+const mongoose = require("mongoose");
+const destinationSchema = require("../schemas/destinationSchema.js");
 
 const DestinationModel = mongoose.model("Destination", destinationSchema);
 
-export default DestinationModel;
+module.exports = DestinationModel;

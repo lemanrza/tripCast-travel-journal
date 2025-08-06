@@ -20,7 +20,8 @@ const travelListSchema = new mongoose.Schema(
         },
         coverImage: {
             type: String,
-            required: true,},
+            required: true,
+        },
         destinations: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "Destination",
@@ -31,5 +32,5 @@ const travelListSchema = new mongoose.Schema(
             default: null,
         },
     }, { timestamps: true });
-    
+
 module.exports = travelListSchema;

@@ -4,6 +4,9 @@ const helmet = require("helmet")
 const rateLimit = require("express-rate-limit")
 const errorHandler = require("./src/middleware/errorHandler.js")
 const userRouter=require("./src/routes/userRoute.js")
+const listRouter=require("./src/routes/listRoute.js")
+const destinationRouter=require("./src/routes/destinationRoute.js")
+
 const app = express()
 const path = require("path")
 const limiter = rateLimit({
@@ -18,6 +21,9 @@ app.use(limiter)
 app.use(helmet())
 
 app.use("/auth", userRouter);
+app.use("/lists", listRouter);
+app.use("/destinations", destinationRouter);
+
 
 app.use(errorHandler);
 
