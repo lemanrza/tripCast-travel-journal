@@ -1,12 +1,11 @@
 const Joi = require("joi");
 const userValidationSchema = Joi.object({
-    username: Joi.string().min(3).required(),
     email: Joi.string().email().required(),
     fullName: Joi.string().min(3).required(),
     profileImage: Joi.object({
         url: Joi.string().uri().required(),
         public_id: Joi.string().required(),
-    }),
+    }).optional(),
     premium: Joi.boolean().optional(),
     password: Joi.string().min(6).when("provider", {
         is: "local",
