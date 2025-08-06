@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import journalEntrySchema from "../schemas/journalEntry";
+const mongoose = require("mongoose");
+const journalEntrySchema = require("../schemas/journalEntry");
 
 const JournalEntryModel = mongoose.model("JournalEntry", journalEntrySchema);
 
-export default JournalEntryModel;
+module.exports = JournalEntryModel;
