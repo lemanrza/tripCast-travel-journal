@@ -9,5 +9,6 @@ module.exports = {
     JWT_REFRESH_SECRET_KEY: process.env.JWT_REFRESH_SECRET_KEY,
     GMAIL_USER: process.env.GMAIL_USER,
     GMAIL_PASS: process.env.GMAIL_PASS,
-    SERVER_URL: process.env.SERVER_URL || "http://localhost:5000"
+    SERVER_URL: process.env.SERVER_URL || "http://localhost:5000",
+    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173"
 }

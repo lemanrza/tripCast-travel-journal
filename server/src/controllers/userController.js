@@ -86,12 +86,13 @@ exports.registerUser = async (
     next
 ) => {
     try {
-        const { password, ...otherData } = req.body;
+        const { password, email, ...otherData } = req.body;
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         const userData = {
             ...otherData,
+            email,
             password: hashedPassword,
         };
 
@@ -104,7 +105,7 @@ exports.registerUser = async (
         const token = generateAccessToken(
             {
                 id: response.data._id,
-                email: req.body.email,
+                email: email,
                 fullName: req.body.fullName,
             },
             "6h"
@@ -112,7 +113,7 @@ exports.registerUser = async (
 
         const verificationLink = `${SERVER_URL}/auth/verify-email?token=${token}`;
         sendVerificationEmail(
-            req.body.email,
+            email,
             req.body.fullName,
             verificationLink
         );
@@ -137,13 +138,28 @@ exports.verifyUserEmail = async (
     try {
         const { token } = req.query;
 
+        if (!token) {
+            return res.redirect(
+                `${config.CLIENT_URL}/auth/email-verified?error=Missing verification token`
+            );
+        }
+
         const response = await verifyEmail(token);
 
-        res.redirect(
-            `${config.CLIENT_URL}/auth/email-verified?message=${response?.message}`
-        );
+        if (response && response.success) {
+            res.redirect(
+                `${config.CLIENT_URL}/auth/email-verified?message=${encodeURIComponent(response.message)}`
+            );
+        } else {
+            res.redirect(
+                `${config.CLIENT_URL}/auth/email-verified?error=${encodeURIComponent(response?.message || 'Verification failed')}`
+            );
+        }
     } catch (error) {
-        next(error);
+        console.error('Email verification error:', error);
+        res.redirect(
+            `${config.CLIENT_URL}/auth/email-verified?error=${encodeURIComponent(error.message || 'Verification failed')}`
+        );
     }
 };
 

@@ -20,13 +20,11 @@ const travelListSchema = new mongoose.Schema(
         },
         coverImage: {
             type: String,
-            default:
-                "https://img.freepik.com/free-vector/default-cover-image_23-2148511230.jpg",
-        },
-        destinations: {
+            required: true,},
+        destinations: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "Destination",
-        },
+        }],
         chat: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Chat",

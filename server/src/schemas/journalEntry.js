@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
-const journalEntry = new mongoose.Schema({
+
+const journalEntrySchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true },
     content: { type: String, required: true, trim: true },
     photos: {
         type: [String],
         default: [],
     },
-    destinations: {
+    destination: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Destination",
         required: true,
@@ -16,6 +17,21 @@ const journalEntry = new mongoose.Schema({
         ref: "User",
         required: true,
     },
+    comments: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: "Comment",
+        default: [],
+    },
+    likes: {
+        type: [
+            {
+                userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+                createdAt: { type: Date, default: Date.now },
+            },
+        ],
+        default: [], 
+    },
     public: { type: Boolean, default: false },
 }, { timestamps: true });
-module.exports = journalEntry;
+
+module.exports = journalEntrySchema;
