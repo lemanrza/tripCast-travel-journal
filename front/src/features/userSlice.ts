@@ -6,32 +6,44 @@ export interface UserState {
     id: string | null;
     username: string | null;
     email: string | null;
-    fullName?: string | null;
+    fullName: string | null;
+    profileImage: {
+        url: string;
+        public_id?: string;
+    } | null;
+    premium: boolean;
+    lists: string[];
+    journals: string[];
     lastLogin: string | null;
     loginAttempts: number;
     lockUntil: string | null;
-    lastSeen: string | null;
     isVerified: boolean;
+    provider: 'local' | 'google' | 'instagram';
+    providerId: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    token: string | null;
+    isAuthenticated: boolean;
 }
 
 function getInitialState(): UserState {
     const baseState: UserState = {
         id: null,
-        status: null,
-        socketId: null,
-        profileVisibility: null,
         username: null,
         email: null,
-        profile: null,
-        hobbies: [],
-        connections: [],
+        fullName: null,
+        profileImage: null,
+        premium: false,
+        lists: [],
+        journals: [],
         lastLogin: null,
         loginAttempts: 0,
         lockUntil: null,
-        lastSeen: null,
-        isOnline: false,
-        emailVerified: false,
-        connectionsRequests: [],
+        isVerified: false,
+        provider: 'local',
+        providerId: null,
+        createdAt: null,
+        updatedAt: null,
         token: null,
         isAuthenticated: false,
     };
@@ -43,16 +55,22 @@ function getInitialState(): UserState {
                 id: string;
                 username: string;
                 email: string;
-                profile: UserProfile;
-                status: string;
-                socketId: string | null;
-                profileVisibility: string;
-                hobbies: string[];
-                connections: string[];
-                lastLogin: string | null;
-                isOnline: boolean;
-                emailVerified: boolean;
-                connectionsRequests: string[];
+                fullName: string;
+                profileImage?: {
+                    url: string;
+                    public_id?: string;
+                };
+                premium?: boolean;
+                lists?: string[];
+                journals?: string[];
+                lastLogin?: string;
+                loginAttempts?: number;
+                lockUntil?: string;
+                isVerified?: boolean;
+                provider?: 'local' | 'google' | 'instagram';
+                providerId?: string;
+                createdAt?: string;
+                updatedAt?: string;
                 iat: number;
                 exp: number;
             } = jwtDecode(token);
@@ -65,17 +83,19 @@ function getInitialState(): UserState {
                     id: decoded.id,
                     username: decoded.username,
                     email: decoded.email,
-                    profile: decoded.profile,
-                    status: decoded.status,
-                    socketId: decoded.socketId,
-                    profileVisibility: decoded.profileVisibility,
-                    hobbies: decoded.hobbies || [],
-                    connections: decoded.connections || [],
-                    lastLogin: decoded.lastLogin,
-                    isOnline: decoded.isOnline,
-                    emailVerified: decoded.emailVerified,
-                    connectionsRequests: decoded.connectionsRequests || [],
-                    lastSeen: new Date().toISOString(),
+                    fullName: decoded.fullName,
+                    profileImage: decoded.profileImage || null,
+                    premium: decoded.premium || false,
+                    lists: decoded.lists || [],
+                    journals: decoded.journals || [],
+                    lastLogin: decoded.lastLogin || null,
+                    loginAttempts: decoded.loginAttempts || 0,
+                    lockUntil: decoded.lockUntil || null,
+                    isVerified: decoded.isVerified || false,
+                    provider: decoded.provider || 'local',
+                    providerId: decoded.providerId || null,
+                    createdAt: decoded.createdAt || null,
+                    updatedAt: decoded.updatedAt || null,
                     token: token,
                     isAuthenticated: true,
                 };
@@ -104,76 +124,131 @@ const userSlice = createSlice({
                 id: string;
                 username: string;
                 email: string;
-                profile: UserProfile;
-                status: string;
-                socketId: string | null;
-                profileVisibility: string;
-                hobbies: string[];
-                connections: string[];
-                lastLogin: string | null;
-                isOnline: boolean;
-                emailVerified: boolean;
-                connectionsRequests: string[];
-                lastSeen?: string;
+                fullName: string;
+                profileImage?: {
+                    url: string;
+                    public_id?: string;
+                };
+                premium?: boolean;
+                lists?: string[];
+                journals?: string[];
+                lastLogin?: string;
+                loginAttempts?: number;
+                lockUntil?: string;
+                isVerified?: boolean;
+                provider?: 'local' | 'google' | 'instagram';
+                providerId?: string;
+                createdAt?: string;
+                updatedAt?: string;
                 token: string;
             }>
         ) => {
-            const { id, username, email, profile, status, socketId, profileVisibility, hobbies, connections, lastLogin, isOnline, emailVerified, connectionsRequests, token } = action.payload;
+            const { 
+                id, 
+                username, 
+                email, 
+                fullName, 
+                profileImage, 
+                premium, 
+                lists, 
+                journals, 
+                lastLogin, 
+                loginAttempts, 
+                lockUntil, 
+                isVerified, 
+                provider, 
+                providerId, 
+                createdAt, 
+                updatedAt, 
+                token 
+            } = action.payload;
+            
             state.id = id;
             state.username = username;
             state.email = email;
-            state.profile = profile;
-            state.status = status;
-            state.socketId = socketId;
-            state.profileVisibility = profileVisibility;
-            state.hobbies = hobbies || [];
-            state.connections = connections || [];
-            state.lastLogin = lastLogin;
-            state.isOnline = isOnline;
-            state.emailVerified = emailVerified;
-            state.connectionsRequests = connectionsRequests || [];
+            state.fullName = fullName;
+            state.profileImage = profileImage || null;
+            state.premium = premium || false;
+            state.lists = lists || [];
+            state.journals = journals || [];
+            state.lastLogin = lastLogin || null;
+            state.loginAttempts = loginAttempts || 0;
+            state.lockUntil = lockUntil || null;
+            state.isVerified = isVerified || false;
+            state.provider = provider || 'local';
+            state.providerId = providerId || null;
+            state.createdAt = createdAt || null;
+            state.updatedAt = updatedAt || null;
             state.token = token;
             state.isAuthenticated = true;
-            state.lastSeen = new Date().toISOString();
             localStorage.setItem("token", token);
         },
-        updateUserProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
-            if (state.profile) {
-                state.profile = { ...state.profile, ...action.payload };
+        updateUserProfile: (state, action: PayloadAction<{
+            fullName?: string;
+            profileImage?: {
+                url: string;
+                public_id?: string;
+            };
+        }>) => {
+            if (action.payload.fullName) {
+                state.fullName = action.payload.fullName;
             }
-        },
-        updateUserHobbies: (state, action: PayloadAction<string[]>) => {
-            state.hobbies = action.payload;
-        },
-        addConnection: (state, action: PayloadAction<string>) => {
-            if (!state.connections.includes(action.payload)) {
-                state.connections.push(action.payload);
+            if (action.payload.profileImage) {
+                state.profileImage = action.payload.profileImage;
             }
+            state.updatedAt = new Date().toISOString();
         },
-        removeConnection: (state, action: PayloadAction<string>) => {
-            state.connections = state.connections.filter(id => id !== action.payload);
+        updatePremiumStatus: (state, action: PayloadAction<boolean>) => {
+            state.premium = action.payload;
+            state.updatedAt = new Date().toISOString();
         },
-        setOnlineStatus: (state, action: PayloadAction<boolean>) => {
-            state.isOnline = action.payload;
-            state.lastSeen = new Date().toISOString();
+        addList: (state, action: PayloadAction<string>) => {
+            if (!state.lists.includes(action.payload)) {
+                state.lists.push(action.payload);
+            }
+            state.updatedAt = new Date().toISOString();
+        },
+        removeList: (state, action: PayloadAction<string>) => {
+            state.lists = state.lists.filter(id => id !== action.payload);
+            state.updatedAt = new Date().toISOString();
+        },
+        addJournal: (state, action: PayloadAction<string>) => {
+            if (!state.journals.includes(action.payload)) {
+                state.journals.push(action.payload);
+            }
+            state.updatedAt = new Date().toISOString();
+        },
+        removeJournal: (state, action: PayloadAction<string>) => {
+            state.journals = state.journals.filter(id => id !== action.payload);
+            state.updatedAt = new Date().toISOString();
+        },
+        updateLoginAttempts: (state, action: PayloadAction<number>) => {
+            state.loginAttempts = action.payload;
+        },
+        setLockUntil: (state, action: PayloadAction<string | null>) => {
+            state.lockUntil = action.payload;
+        },
+        setVerificationStatus: (state, action: PayloadAction<boolean>) => {
+            state.isVerified = action.payload;
+            state.updatedAt = new Date().toISOString();
         },
         logoutUser: (state) => {
             state.id = null;
-            state.status = null;
-            state.socketId = null;
-            state.profileVisibility = null;
             state.username = null;
             state.email = null;
-            state.profile = null;
-            state.hobbies = [];
-            state.connections = [];
+            state.fullName = null;
+            state.profileImage = null;
+            state.premium = false;
+            state.lists = [];
+            state.journals = [];
             state.lastLogin = null;
             state.loginAttempts = 0;
             state.lockUntil = null;
-            state.lastSeen = null;
-            state.isOnline = false;
-            state.emailVerified = false;
-            state.connectionsRequests = [];
+            state.isVerified = false;
+            state.provider = 'local';
+            state.providerId = null;
+            state.createdAt = null;
+            state.updatedAt = null;
             state.token = null;
             state.isAuthenticated = false;
             localStorage.removeItem("token");
@@ -184,10 +259,14 @@ const userSlice = createSlice({
 export const { 
     setUser, 
     updateUserProfile, 
-    updateUserHobbies, 
-    addConnection, 
-    removeConnection, 
-    setOnlineStatus, 
+    updatePremiumStatus,
+    addList,
+    removeList,
+    addJournal,
+    removeJournal,
+    updateLoginAttempts,
+    setLockUntil,
+    setVerificationStatus,
     logoutUser 
 } = userSlice.actions;
 

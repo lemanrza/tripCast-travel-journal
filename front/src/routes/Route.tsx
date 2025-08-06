@@ -1,7 +1,5 @@
 import { type RouteObject } from "react-router-dom";
 import ClientLayout from "../layout/ClientLayout";
-import Login from "../pages/Auth/Login";
-import Register from "../pages/Auth/Register";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import AuthLayout from "../layout/AuthLayout";
@@ -13,13 +11,16 @@ import ListDetail from "../pages/Client/ListDetail";
 import EmailVerify from "../pages/Auth/EmailVerify";
 import AuthCallback from "../pages/Auth/AuthCallback";
 import NotFound from "../pages/Client/NotFound";
+import LoginRegister from "../pages/Auth/LoginRegister";
+import Profile from "@/pages/Client/Profile";
+import Explore from "@/pages/Client/Explore";
 
 
 const ROUTES: RouteObject[] = [
     // client layout
     {
         path: "/",
-        element: <Login />,
+        element: <LoginRegister />,
     },
     {
         element: <ClientLayout />,
@@ -44,6 +45,14 @@ const ROUTES: RouteObject[] = [
                 path: "lists/:id",
                 element: <ListDetail />,
             },
+               {
+                path: "profile",
+                element: <Profile />,
+            },
+            {
+                path: "explore",
+                element: <Explore />,
+            },
         ],
     },
     // auth layout
@@ -51,14 +60,6 @@ const ROUTES: RouteObject[] = [
         element: <AuthLayout />,
         path: "/auth/",
         children: [
-            {
-                path: "login",
-                element: <Login />,
-            },
-            {
-                path: "register",
-                element: <Register />,
-            },
             {
                 path: "email-verified",
                 element: <EmailVerify />,
