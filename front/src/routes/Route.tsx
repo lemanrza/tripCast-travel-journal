@@ -14,6 +14,7 @@ import NotFound from "../pages/Client/NotFound";
 import LoginRegister from "../pages/Auth/LoginRegister";
 import Profile from "@/pages/Client/Profile";
 import Explore from "@/pages/Client/Explore";
+import CreateList from "@/pages/Client/CreateList";
 
 
 const ROUTES: RouteObject[] = [
@@ -45,13 +46,17 @@ const ROUTES: RouteObject[] = [
                 path: "lists/:id",
                 element: <ListDetail />,
             },
-               {
+            {
                 path: "profile",
                 element: <Profile />,
             },
             {
                 path: "explore",
                 element: <Explore />,
+            },
+            {
+                path: "create/list",
+                element: <CreateList />,
             },
         ],
     },
