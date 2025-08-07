@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.active {
+  color: #0a33ca;
+}
+*{
+  font-family: "Inter";
+}
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -114,6 +120,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
