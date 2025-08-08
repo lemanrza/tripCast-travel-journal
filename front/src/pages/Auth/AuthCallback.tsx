@@ -18,7 +18,7 @@ const AuthCallback = () => {
           },
         });
 
-        navigate("/app/feed");
+        navigate("/dashboard");
       } catch (err) {
         console.log("error: ", err);
         enqueueSnackbar("Invalid token", {
@@ -29,7 +29,7 @@ const AuthCallback = () => {
             horizontal: "right",
           },
         });
-        navigate("/auth/login");
+        navigate("/");
       }
     } else {
       enqueueSnackbar("Token not found. Please try logging in again.", {
@@ -40,7 +40,7 @@ const AuthCallback = () => {
           horizontal: "right",
         },
       });
-      navigate("/auth/login");
+      navigate("/");
     }
   }, [navigate, token]);
 

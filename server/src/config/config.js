@@ -10,5 +10,7 @@ module.exports = {
     GMAIL_USER: process.env.GMAIL_USER,
     GMAIL_PASS: process.env.GMAIL_PASS,
     SERVER_URL: process.env.SERVER_URL || "http://localhost:5000",
-    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173"
+    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
 }
