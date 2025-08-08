@@ -4,8 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Link, NavLink } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { DropdownMenuSeparator } from "@radix-ui/react-dropdown-menu";
+import { useSelector } from "react-redux";
 
 export default function Header() {
+const user=useSelector((state:any)=>state.user)
+console.log(user.profileImage)
   const notifications = [
     {
       title: "New collaborator joined",

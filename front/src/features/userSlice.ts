@@ -4,7 +4,6 @@ import { jwtDecode } from "jwt-decode";
 
 export interface UserState {
     id: string | null;
-    username: string | null;
     email: string | null;
     fullName: string | null;
     profileImage: {
@@ -18,7 +17,7 @@ export interface UserState {
     loginAttempts: number;
     lockUntil: string | null;
     isVerified: boolean;
-    provider: 'local' | 'google' | 'instagram';
+    provider: 'local' | 'google';
     providerId: string | null;
     createdAt: string | null;
     updatedAt: string | null;
@@ -29,7 +28,6 @@ export interface UserState {
 function getInitialState(): UserState {
     const baseState: UserState = {
         id: null,
-        username: null,
         email: null,
         fullName: null,
         profileImage: null,
@@ -53,7 +51,6 @@ function getInitialState(): UserState {
         if (token) {
             const decoded: {
                 id: string;
-                username: string;
                 email: string;
                 fullName: string;
                 profileImage?: {
@@ -67,7 +64,7 @@ function getInitialState(): UserState {
                 loginAttempts?: number;
                 lockUntil?: string;
                 isVerified?: boolean;
-                provider?: 'local' | 'google' | 'instagram';
+                provider?: 'local' | 'google';
                 providerId?: string;
                 createdAt?: string;
                 updatedAt?: string;
@@ -81,7 +78,6 @@ function getInitialState(): UserState {
                 return {
                     ...baseState,
                     id: decoded.id,
-                    username: decoded.username,
                     email: decoded.email,
                     fullName: decoded.fullName,
                     profileImage: decoded.profileImage || null,
@@ -122,7 +118,6 @@ const userSlice = createSlice({
             state,
             action: PayloadAction<{
                 id: string;
-                username: string;
                 email: string;
                 fullName: string;
                 profileImage?: {
@@ -136,7 +131,7 @@ const userSlice = createSlice({
                 loginAttempts?: number;
                 lockUntil?: string;
                 isVerified?: boolean;
-                provider?: 'local' | 'google' | 'instagram';
+                provider?: 'local' | 'google';
                 providerId?: string;
                 createdAt?: string;
                 updatedAt?: string;
@@ -145,7 +140,6 @@ const userSlice = createSlice({
         ) => {
             const { 
                 id, 
-                username, 
                 email, 
                 fullName, 
                 profileImage, 
@@ -164,7 +158,6 @@ const userSlice = createSlice({
             } = action.payload;
             
             state.id = id;
-            state.username = username;
             state.email = email;
             state.fullName = fullName;
             state.profileImage = profileImage || null;
@@ -234,7 +227,6 @@ const userSlice = createSlice({
         },
         logoutUser: (state) => {
             state.id = null;
-            state.username = null;
             state.email = null;
             state.fullName = null;
             state.profileImage = null;

@@ -112,9 +112,9 @@ exports.login = async (email, password) => {
 
             const token = generateAccessToken(
                 {
-                    id: user.id,
+                    id: user._id,
                     email: user.email,
-                    fullName: user.profile.displayName,
+                    fullName: user.fullName,
                 },
                 "6h"
             );
@@ -143,15 +143,39 @@ exports.login = async (email, password) => {
     await user.save();
 
     const accessToken = generateAccessToken({
+        id: user._id,
         email: user.email,
-        id: user.id,
         fullName: user.fullName,
+        profileImage: user.profileImage,
+        premium: user.premium || false,
+        lists: user.lists || [],
+        journals: user.journals || [],
+        lastLogin: user.lastLogin,
+        loginAttempts: user.loginAttempts || 0,
+        lockUntil: user.lockUntil,
+        isVerified: user.isVerified || false,
+        provider: user.provider || 'local',
+        providerId: user.providerId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
     });
 
     const refreshToken = generateRefreshToken({
+        id: user._id,
         email: user.email,
-        id: user.id,
         fullName: user.fullName,
+        profileImage: user.profileImage,
+        premium: user.premium || false,
+        lists: user.lists || [],
+        journals: user.journals || [],
+        lastLogin: user.lastLogin,
+        loginAttempts: user.loginAttempts || 0,
+        lockUntil: user.lockUntil,
+        isVerified: user.isVerified || false,
+        provider: user.provider || 'local',
+        providerId: user.providerId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
     });
 
     return {

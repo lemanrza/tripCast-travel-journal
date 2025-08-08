@@ -5,13 +5,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDispatch } from "react-redux";
+import { jwtDecode } from "jwt-decode";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
 import loginValidation from "@/validations/loginValidation";
 import registerValidation from "@/validations/registerValidation";
+import { setUser } from "@/features/userSlice";
 
 function LoginRegister() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -86,8 +90,56 @@ function LoginRegister() {
           });
 
           if (response.token) {
-            localStorage.setItem("token", response.token);
-            navigate("/dashboard");
+            try {
+              const decoded: {
+                id: string;
+                email: string;
+                fullName: string;
+                profileImage?: {
+                  url: string;
+                  public_id?: string;
+                };
+                premium?: boolean;
+                lists?: string[];
+                journals?: string[];
+                lastLogin?: string;
+                loginAttempts?: number;
+                lockUntil?: string;
+                isVerified?: boolean;
+                provider?: 'local' | 'google';
+                providerId?: string;
+                createdAt?: string;
+                updatedAt?: string;
+                iat: number;
+                exp: number;
+              } = jwtDecode(response.token);
+
+              dispatch(setUser({
+                id: decoded.id,
+                email: decoded.email,
+                fullName: decoded.fullName,
+                profileImage: decoded.profileImage,
+                premium: decoded.premium,
+                lists: decoded.lists,
+                journals: decoded.journals,
+                lastLogin: decoded.lastLogin,
+                loginAttempts: decoded.loginAttempts,
+                lockUntil: decoded.lockUntil,
+                isVerified: decoded.isVerified,
+                provider: decoded.provider,
+                providerId: decoded.providerId,
+                createdAt: decoded.createdAt,
+                updatedAt: decoded.updatedAt,
+                token: response.token
+              }));
+
+              localStorage.setItem("token", response.token);
+              navigate("/dashboard");
+            } catch (decodeError) {
+              console.error("Error decoding JWT:", decodeError);
+              localStorage.setItem("token", response.token);
+              navigate("/dashboard");
+            }
           }
         }
 
