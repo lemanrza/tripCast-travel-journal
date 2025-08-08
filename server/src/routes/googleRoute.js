@@ -31,6 +31,18 @@ googleRouter.get(
                     id: user._id,
                     email: user.email,
                     fullName: user.fullName,
+                    profileImage: user.profileImage,
+                    premium: user.premium || false,
+                    lists: user.lists || [],
+                    journals: user.journals || [],
+                    lastLogin: user.lastLogin,
+                    loginAttempts: user.loginAttempts || 0,
+                    lockUntil: user.lockUntil,
+                    isVerified: user.isVerified || false,
+                    provider: user.provider || 'google',
+                    providerId: user.providerId,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt,
                 },
                 "15m"
             );
