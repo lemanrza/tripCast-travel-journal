@@ -8,7 +8,6 @@ import { useSelector } from "react-redux";
 
 export default function Header() {
 const user=useSelector((state:any)=>state.user)
-console.log(user.profileImage)
   const notifications = [
     {
       title: "New collaborator joined",
@@ -100,13 +99,15 @@ console.log(user.profileImage)
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center space-x-2 focus:outline-none">
-            <div className="w-8 h-8 rounded-full bg-muted" />
+            <div>
+              <img src={user.profileImage?.url} alt={user.fullName} className="w-8 h-8 rounded-full" />
+            </div>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className="w-64 rounded-lg shadow-md p-0" align="end" sideOffset={8}>
             <div className="px-4 py-3">
-              <div className="text-sm font-medium text-black">John Doe</div>
-              <div className="text-sm text-muted-foreground font-semibold">john.doe@example.com</div>
+              <div className="text-sm font-medium text-black">{user.fullName}</div>
+              <div className="text-sm text-muted-foreground font-semibold">{user.email}</div>
             </div>
 
             <DropdownMenuSeparator />
