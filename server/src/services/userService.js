@@ -1,5 +1,8 @@
 const bcrypt = require("bcrypt");
 const UserModel =require( "../models/userModel.js");
+const JournalEntryModel = require("../models/journalEntryModel.js"); // Register the model
+const TravelListModel = require("../models/travelListModel.js"); // Register the model
+const DestinationModel = require("../models/destinationModel.js"); // Register the model
 const {
     generateAccessToken,
     generateRefreshToken,
@@ -142,40 +145,52 @@ exports.login = async (email, password) => {
 
     await user.save();
 
+    // Fetch user with populated lists and journals for JWT payload
+    const populatedUser = await UserModel.findById(user._id)
+        .select("-password")
+        .populate("journals")
+        .populate({
+            path: "lists",
+            populate: {
+                path: "destinations",
+                model: "Destination"
+            }
+        });
+
     const accessToken = generateAccessToken({
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName,
-        profileImage: user.profileImage,
-        premium: user.premium || false,
-        lists: user.lists || [],
-        journals: user.journals || [],
-        lastLogin: user.lastLogin,
-        loginAttempts: user.loginAttempts || 0,
-        lockUntil: user.lockUntil,
-        isVerified: user.isVerified || false,
-        provider: user.provider || 'local',
-        providerId: user.providerId,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        id: populatedUser._id,
+        email: populatedUser.email,
+        fullName: populatedUser.fullName,
+        profileImage: populatedUser.profileImage,
+        premium: populatedUser.premium || false,
+        lists: populatedUser.lists || [],
+        journals: populatedUser.journals || [],
+        lastLogin: populatedUser.lastLogin,
+        loginAttempts: populatedUser.loginAttempts || 0,
+        lockUntil: populatedUser.lockUntil,
+        isVerified: populatedUser.isVerified || false,
+        provider: populatedUser.provider || 'local',
+        providerId: populatedUser.providerId,
+        createdAt: populatedUser.createdAt,
+        updatedAt: populatedUser.updatedAt,
     });
 
     const refreshToken = generateRefreshToken({
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName,
-        profileImage: user.profileImage,
-        premium: user.premium || false,
-        lists: user.lists || [],
-        journals: user.journals || [],
-        lastLogin: user.lastLogin,
-        loginAttempts: user.loginAttempts || 0,
-        lockUntil: user.lockUntil,
-        isVerified: user.isVerified || false,
-        provider: user.provider || 'local',
-        providerId: user.providerId,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        id: populatedUser._id,
+        email: populatedUser.email,
+        fullName: populatedUser.fullName,
+        profileImage: populatedUser.profileImage,
+        premium: populatedUser.premium || false,
+        lists: populatedUser.lists || [],
+        journals: populatedUser.journals || [],
+        lastLogin: populatedUser.lastLogin,
+        loginAttempts: populatedUser.loginAttempts || 0,
+        lockUntil: populatedUser.lockUntil,
+        isVerified: populatedUser.isVerified || false,
+        provider: populatedUser.provider || 'local',
+        providerId: populatedUser.providerId,
+        createdAt: populatedUser.createdAt,
+        updatedAt: populatedUser.updatedAt,
     });
 
     return {

@@ -11,70 +11,60 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHe
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useEffect, useState } from "react";
+import controller from "@/services/commonRequest";
+import endpoints from "@/services/api";
 
 
 
 export default function Dashboard() {
+  const [allLists, setAllLists] = useState([]);
+  const user = useSelector((state: any) => state.user);
+  useEffect(() => {
+    if (!user || !user.id) {
+      console.error("User not found or not logged in");
+      return;
+    }
+    const fetchLists = async () => {
+      const response = await controller.getAll(endpoints.lists)
+      setAllLists(response.data)
+    }
+    fetchLists()
+  }, [user])
+  // console.log(user.lists)
   const stats = [
-    { icon: <IoLocationOutline />, label: "Total Destinations", value: 26, color: "blue" },
-    { icon: <FaRegStar />, label: "Completed", value: 11, color: "green" },
-    { icon: <LuUsers />, label: "Collaborators", value: 8, color: "purple" },
-    { icon: <CiCalendar />, label: "This Year", value: 5, color: "orange" },
+    { icon: <IoLocationOutline />, label: "Total Destinations", value: user.lists?.reduce((total: number, list: any) => total + (list.destinations?.length || 0), 0) || 0, color: "blue" },
+    { icon: <FaRegStar />, label: "Completed", value: user.lists?.reduce((total: number, list: any) => total + (list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0), 0) || 0, color: "green" },
+    { icon: <LuUsers />, label: "Collaborators", value: user.lists?.reduce((total: number, list: any) => total + (list.collaborators?.length || 0), 0) || 0, color: "purple" },
+    { icon: <CiCalendar />, label: "Lists This Year", value: user.lists?.filter((list: any) => new Date(list.createdAt).getFullYear() === new Date().getFullYear()).length || 0, color: "orange" },
   ];
 
-  const travelListsShared = [
-    {
-      title: "European Adventure 2024",
-      desc: "Exploring the historic cities and beautiful landscapes of Europe",
-      completed: 3,
-      total: 8,
-      tags: ["#culture", "#history", "#food"],
-      visibility: "Public" as const,
-      created: "1/15/2024",
-      collaborators: 2,
-      isNew: true,
-    },
-    {
-      title: "Southeast Asia Backpacking",
-      desc: "Budget-friendly adventure through Thailand, Vietnam, and Cambodia",
-      completed: 0,
-      total: 12,
-      tags: ["#adventure", "#budget", "#culture"],
-      visibility: "Private" as const,
-      created: "2/1/2024",
-      collaborators: 0,
-    },
-    {
-      title: "Japan Cherry Blossom Tour",
-      desc: "Experiencing the magical sakura season across Japan",
-      completed: 6,
-      total: 6,
-      tags: ["#nature", "#culture", "#photography"],
-      visibility: "Public" as const,
-      created: "3/10/2023",
-      collaborators: 1,
-    },
-  ];
+  const travelListsMe = user.lists?.filter((list: any) => list.owner === user.id) || [];
+  const travelListsShared = allLists.filter((list: any) => 
+    list.collaborators?.some((collab: any) => collab._id === user.id) && list.owner !== user.id
+  ) || [];
 
-  const travelListsMe = [
-    {
-      title: "European Adventure 2024",
-      desc: "Exploring the historic cities and beautiful landscapes of Europe",
-      completed: 3,
-      total: 8,
-      tags: ["#culture", "#history", "#food"],
-      visibility: "Public" as const,
-      created: "1/15/2024",
-      collaborators: 2,
-      isNew: true,
-    },
-  ];
+  const formatList = (list: any) => ({
+    title: list.title || "Untitled List",
+    desc: list.description || "No description available",
+    completed: list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0,
+    total: list.destinations?.length || 0,
+    tags: list.tags || [],
+    visibility: list.isPublic ? "Public" as const : "Private" as const,
+    created: new Date(list.createdAt).toLocaleDateString() || "Unknown",
+    collaborators: list.collaborators?.length || 0,
+    isNew: false,
+  });
+
+  const formattedListsMe = travelListsMe.map(formatList);
+  const formattedListsShared = travelListsShared.map(formatList);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Welcome back, John! 👋</h1>
+          <h1 className="text-3xl font-semibold">Welcome back, {user.fullName}! 👋</h1>
           <p className="text-muted-foreground text-md mt-3">Ready for your next adventure?</p>
         </div>
         <Link to={"/create/list"}>
@@ -136,23 +126,40 @@ export default function Dashboard() {
       {/* Tabs */}
       <Tabs defaultValue="mine">
         <TabsList className="bg-muted rounded-md w-fit mb-4">
-          <TabsTrigger value="mine">My Lists ({travelListsMe.length})</TabsTrigger>
-          <TabsTrigger value="shared">Shared with Me ({travelListsShared.length})</TabsTrigger>
+          <TabsTrigger value="mine">My Lists ({formattedListsMe.length})</TabsTrigger>
+          <TabsTrigger value="shared">Shared with Me ({formattedListsShared.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mine">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {travelListsMe.map((list, i) => (
-              <TravelListCard key={i} {...list} />
-            ))}
+            {formattedListsMe.length > 0 ? (
+              formattedListsMe.map((list: any, i: number) => (
+                <TravelListCard key={i} {...list} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                <p>You haven't created any travel lists yet.</p>
+                <Link to="/create/list">
+                  <Button className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                    <Plus className="w-4 h-4 mr-2" /> Create Your First List
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="shared">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {travelListsShared.map((list, i) => (
-              <TravelListCard key={i} {...list} />
-            ))}
+            {formattedListsShared.length > 0 ? (
+              formattedListsShared.map((list: any, i: number) => (
+                <TravelListCard key={i} {...list} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                <p>No lists have been shared with you yet.</p>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
