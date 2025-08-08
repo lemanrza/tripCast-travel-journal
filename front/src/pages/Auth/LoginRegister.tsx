@@ -116,7 +116,7 @@ function LoginRegister() {
     validationSchema: registerValidation,
     onSubmit: async (values, action) => {
       console.log("Registration form submitted with values:", values);
-      
+
       const registrationData = {
         email: values.email,
         password: values.password,
@@ -276,6 +276,10 @@ function LoginRegister() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      window.location.href = `${import.meta.env.VITE_SERVER_URL
+                        }/auth/google?mode=login`;
+                    }}
                     className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 text-sm font-medium gap-2 hover:bg-gray-50"
                   >
                     <FaGoogle /> Continue with Google

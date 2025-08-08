@@ -31,14 +31,12 @@ exports.getByEmail = async (email) => {
 
 exports.register = async (payload) => {
     try {
-        const { email, username } = payload;
-        const dublicateUser = await UserModel.findOne({
-            $or: [{ email }, { username }],
-        });
+        const { email } = payload;
+        const dublicateUser = await UserModel.findOne({ email });
         if (dublicateUser) {
             return {
                 success: false,
-                message: "Username or email already exist",
+                message: "Email already exists",
             };
         }
 
