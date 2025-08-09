@@ -1,8 +1,8 @@
 const bcrypt = require("bcrypt");
-const UserModel =require( "../models/userModel.js");
-const JournalEntryModel = require("../models/journalEntryModel.js"); // Register the model
-const TravelListModel = require("../models/travelListModel.js"); // Register the model
-const DestinationModel = require("../models/destinationModel.js"); // Register the model
+const UserModel = require("../models/userModel.js");
+const JournalEntryModel = require("../models/journalEntryModel.js"); 
+const TravelListModel = require("../models/travelListModel.js"); 
+const DestinationModel = require("../models/destinationModel.js");
 const {
     generateAccessToken,
     generateRefreshToken,
@@ -10,9 +10,11 @@ const {
 } = require("../utils/jwt.js");
 const {
     sendUnlockAccountEmail,
+    sendForgotPasswordEmail,
 } = require("../utils/sendMail.js");
 const config = require("../config/config.js");
 const SERVER_URL = config.SERVER_URL;
+const CLIENT_URL = config.CLIENT_URL;
 const MAX_ATTEMPTS = 3;
 const LOCK_TIME = 10 * 60 * 1000;
 
@@ -89,20 +91,25 @@ exports.login = async (email, password) => {
 
     if (!user.isVerified) throw new Error("User should be verified first");
 
-    if (user.lockUntil && user.lockUntil > new Date()) {
-        const unlockTime = new Date(user.lockUntil).toLocaleString();
-        throw new Error(`User is locked. Try again after ${unlockTime}`);
+    // Check if account is locked and if the lock time has expired
+    if (user.lockUntil) {
+        if (user.lockUntil > new Date()) {
+            // Account is still locked
+            const unlockTime = new Date(user.lockUntil).toLocaleString();
+            throw new Error(`Account is locked. Try again after ${unlockTime}`);
+        } else {
+            // Lock time has expired, automatically unlock the account
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();
+        }
     }
 
     if (user.provider == "google") {
         throw new Error(
             "This account has been created with Google, please try sign in with Google"
         );
-    } else if (user.provider == "instagram") {
-        throw new Error(
-            "This account has been created with Instagram, please try sign in with Instagram"
-        );
-    }
+    } 
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
@@ -140,12 +147,12 @@ exports.login = async (email, password) => {
     }
 
     user.loginAttempts = 0;
+    user.lockUntil = null; 
     user.isBanned = false;
     user.lastLogin = new Date();
 
     await user.save();
 
-    // Fetch user with populated lists and journals for JWT payload
     const populatedUser = await UserModel.findById(user._id)
         .select("-password")
         .populate("journals")
@@ -198,4 +205,72 @@ exports.login = async (email, password) => {
         accessToken: accessToken,
         refreshToken: refreshToken,
     };
+};
+
+exports.unlockAcc = async (token) => {
+    const isValidToken = verifyAccessToken(token);
+
+    if (isValidToken && isValidToken.id) {
+        const { id } = isValidToken;
+        const user = await UserModel.findById(id);
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Check if account is actually locked
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            // Manually unlock the account
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();
+
+            return {
+                message: "Account has been unlocked successfully",
+            };
+        } else if (user.lockUntil && user.lockUntil <= new Date()) {
+            // Account lock has already expired, just reset the fields
+            user.loginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();
+
+            return {
+                message: "Account lock has expired and has been cleared",
+            };
+        } else {
+            return {
+                message: "Account is not locked",
+            };
+        }
+    } else {
+        throw new Error("Invalid or expired token");
+    }
+};
+
+exports.forgotPassword = async (email) => {
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+        throw new Error("email does not exist!");
+    } else {
+        const token = generateAccessToken(
+            {
+                id: user._id,
+                email: user.email,
+            },
+            "30m"
+        );
+        const resetPasswordLink = `${CLIENT_URL}/auth/reset-password/${token}`;
+        sendForgotPasswordEmail(email, user.fullName, resetPasswordLink);
+    }
+};
+
+exports.resetPass = async (newPassword, email) => {
+    const user = await UserModel.findOne({ email: email });
+    if (!user) throw new Error("user not found!");
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    user.password = hashedPassword;
+    await user.save();
+    return user;
 };

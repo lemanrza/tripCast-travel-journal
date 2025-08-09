@@ -66,8 +66,8 @@ A Node.js/Express.js REST API for managing travel bucket list destinations with 
 ### User
 ```javascript
 {
-  username: String (required, unique)
   email: String (required, unique)
+  fullName: String (required)
   password: String (required, hashed)
   timestamps: true
 }
