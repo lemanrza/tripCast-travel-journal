@@ -3,7 +3,6 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const UserModel = require("../models/userModel.js");
 const config = require("./config.js");
 
-// Only setup if credentials are available
 if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
@@ -14,7 +13,6 @@ if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
       },
       async (_, __, ___, profile, done) => {
         try {
-          // Ensure Google profile has email
           const email = profile.emails?.[0]?.value;
           const providerId = profile.id;
           const displayName = profile.displayName || "Unnamed";
@@ -34,7 +32,6 @@ if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
             return done(null, existingUser);
           }
 
-          // Check if email is already registered (e.g., via local or other provider)
           const emailConflict = await UserModel.findOne({ email });
 
           if (emailConflict) {
@@ -43,18 +40,17 @@ if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
             });
           }
 
-          // Create new user from Google profile
           const newUser = await UserModel.create({
             email,
             fullName: displayName,
             profileImage: {
               url: profileImageUrl,
-              public_id: null, // can be set later via Cloudinary
+              public_id: null,
             },
             provider: "google",
             providerId,
-            isVerified: true, // Google accounts are trusted
-            password: "google-oauth-no-password", // Not used but required by schema
+            isVerified: true, 
+            password: "google-oauth-no-password", 
           });
 
           return done(null, newUser);
