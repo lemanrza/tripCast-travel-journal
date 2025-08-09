@@ -394,7 +394,6 @@ const Profile = () => {
               <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-1">
                 {userData?.fullName || "User"}
               </h2>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">@{userData?.username || "username"}</p>
               <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
                 {formData.bio || "No bio available"}
               </p>

@@ -3,6 +3,9 @@ const passport = require("passport");
 const config = require("../config/config.js");
 const generateAccessToken = require("../utils/jwt.js").generateAccessToken;
 const UserModel = require("../models/userModel.js");
+const JournalEntryModel = require("../models/journalEntryModel.js"); 
+const TravelListModel = require("../models/travelListModel.js");
+const DestinationModel = require("../models/destinationModel.js");
 const googleRouter = express.Router();
 
 googleRouter.get(
