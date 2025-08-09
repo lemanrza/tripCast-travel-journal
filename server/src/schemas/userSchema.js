@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
             trim: true,
             lowercase: true,
         },
+        username: { type: String, unique: true, trim: true },
         fullName: { type: String, required: true, trim: true },
         password: { type: String, required: true },
         profileImage: {
@@ -51,6 +52,15 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+
+        socials: {
+            website: { type: String, default: null },
+            instagram: { type: String, default: null },
+            twitter: { type: String, default: null },
+        },
+        bio: { type: String, default: null },
+        location: { type: String, default: null },
+        phoneNumber: { type: String, default: null },
     },
     { timestamps: true }
 );

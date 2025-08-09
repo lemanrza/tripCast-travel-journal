@@ -19,6 +19,14 @@ export interface UserState {
     isVerified: boolean;
     provider: 'local' | 'google';
     providerId: string | null;
+    socials: {
+        website: string | null;
+        instagram: string | null;
+        twitter: string | null;
+    };
+    bio: string | null;
+    location: string | null;
+    phoneNumber: string | null;
     createdAt: string | null;
     updatedAt: string | null;
     token: string | null;
@@ -40,6 +48,14 @@ function getInitialState(): UserState {
         isVerified: false,
         provider: 'local',
         providerId: null,
+        socials: {
+            website: null,
+            instagram: null,
+            twitter: null,
+        },
+        bio: null,
+        location: null,
+        phoneNumber: null,
         createdAt: null,
         updatedAt: null,
         token: null,
@@ -66,6 +82,14 @@ function getInitialState(): UserState {
                 isVerified?: boolean;
                 provider?: 'local' | 'google';
                 providerId?: string;
+                socials?: {
+                    website?: string | null;
+                    instagram?: string | null;
+                    twitter?: string | null;
+                };
+                bio?: string | null;
+                location?: string | null;
+                phoneNumber?: string | null;
                 createdAt?: string;
                 updatedAt?: string;
                 iat: number;
@@ -90,6 +114,14 @@ function getInitialState(): UserState {
                     isVerified: decoded.isVerified || false,
                     provider: decoded.provider || 'local',
                     providerId: decoded.providerId || null,
+                    socials: {
+                        website: decoded.socials?.website || null,
+                        instagram: decoded.socials?.instagram || null,
+                        twitter: decoded.socials?.twitter || null,
+                    },
+                    bio: decoded.bio || null,
+                    location: decoded.location || null,
+                    phoneNumber: decoded.phoneNumber || null,
                     createdAt: decoded.createdAt || null,
                     updatedAt: decoded.updatedAt || null,
                     token: token,
@@ -133,6 +165,14 @@ const userSlice = createSlice({
                 isVerified?: boolean;
                 provider?: 'local' | 'google';
                 providerId?: string;
+                socials?: {
+                    website?: string | null;
+                    instagram?: string | null;
+                    twitter?: string | null;
+                };
+                bio?: string | null;
+                location?: string | null;
+                phoneNumber?: string | null;
                 createdAt?: string;
                 updatedAt?: string;
                 token: string;
@@ -152,6 +192,10 @@ const userSlice = createSlice({
                 isVerified, 
                 provider, 
                 providerId, 
+                socials, 
+                bio, 
+                location, 
+                phoneNumber, 
                 createdAt, 
                 updatedAt, 
                 token 
@@ -170,6 +214,14 @@ const userSlice = createSlice({
             state.isVerified = isVerified || false;
             state.provider = provider || 'local';
             state.providerId = providerId || null;
+            state.socials = {
+                website: socials?.website || null,
+                instagram: socials?.instagram || null,
+                twitter: socials?.twitter || null,
+            };
+            state.bio = bio || null;
+            state.location = location || null;
+            state.phoneNumber = phoneNumber || null;
             state.createdAt = createdAt || null;
             state.updatedAt = updatedAt || null;
             state.token = token;
@@ -239,6 +291,14 @@ const userSlice = createSlice({
             state.isVerified = false;
             state.provider = 'local';
             state.providerId = null;
+            state.socials = {
+                website: null,
+                instagram: null,
+                twitter: null,
+            };
+            state.bio = null;
+            state.location = null;
+            state.phoneNumber = null;
             state.createdAt = null;
             state.updatedAt = null;
             state.token = null;
