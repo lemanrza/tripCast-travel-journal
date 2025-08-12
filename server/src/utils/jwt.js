@@ -7,19 +7,16 @@ const getSecretKey = (secretKey) => {
   return secretKey;
 };
 
-// Generate Token
 exports.generateAccessToken = (payload, expiresIn = "15m") => {
   const secretKey = getSecretKey(config.JWT_ACCESS_SECRET_KEY);
   return jwt.sign(payload, secretKey, { expiresIn });
 };
 
-// Generate Refresh Token
 exports.generateRefreshToken = (payload, expiresIn = "7d") => {
   const secretKey = getSecretKey(config.JWT_REFRESH_SECRET_KEY);
   return jwt.sign(payload, secretKey, { expiresIn });
 };
 
-// Verify Token
 exports.verifyAccessToken = (token) => {
   try {
     const secretKey = getSecretKey(config.JWT_ACCESS_SECRET_KEY);
@@ -29,7 +26,6 @@ exports.verifyAccessToken = (token) => {
   }
 };
 
-// Verify Token
 exports.verifyRefreshToken = (token) => {
   try {
     const secretKey = getSecretKey(config.JWT_REFRESH_SECRET_KEY);

@@ -20,4 +20,23 @@ instance.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle token expiration
+instance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 403 && 
+        (error.response?.data?.message === "Invalid or expired token" || 
+         error.response?.data?.message === "Access token required")) {
+      // Token is expired or invalid
+      localStorage.removeItem("token");
+      // Redirect to login page
+      window.location.href = "/";
+      return Promise.reject(new Error("Session expired. Please log in again."));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default instance;

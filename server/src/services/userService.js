@@ -91,7 +91,6 @@ exports.login = async (email, password) => {
 
     if (!user.isVerified) throw new Error("User should be verified first");
 
-    // Check if account is locked and if the lock time has expired
     if (user.lockUntil) {
         if (user.lockUntil > new Date()) {
             // Account is still locked
@@ -180,7 +179,7 @@ exports.login = async (email, password) => {
         providerId: populatedUser.providerId,
         createdAt: populatedUser.createdAt,
         updatedAt: populatedUser.updatedAt,
-    });
+    }, "24h"); // Extended token expiration to 24 hours
 
     const refreshToken = generateRefreshToken({
         id: populatedUser._id,

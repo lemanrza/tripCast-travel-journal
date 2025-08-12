@@ -4,6 +4,8 @@ const endpoints = {
     users: "/auth",
     lists: "/lists",
     journals: "/journals",
+    upload: "/upload",
+    destinations: "/destinations",
 };
 
 export default endpoints;
