@@ -51,7 +51,6 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
-
         socials: {
             website: { type: String, default: null },
             instagram: { type: String, default: null },

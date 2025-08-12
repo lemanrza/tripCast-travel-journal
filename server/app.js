@@ -14,21 +14,22 @@ const userRouter = require("./src/routes/userRoute.js")
 const listRouter = require("./src/routes/listRoute.js")
 const destinationRouter = require("./src/routes/destinationRoute.js")
 const googleRouter = require("./src/routes/googleRoute.js");
+const uploadRouter = require("./src/routes/uploadRoute.js");
 
 // Initialize Passport configuration
 require("./src/config/passport");
 
 const app = express()
 const path = require("path")
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100
-})
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   limit: 100
+// })
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static("public"))
 app.use(cors())
-app.use(limiter)
+// app.use(limiter)
 app.use(helmet())
 app.use(passport.initialize())
 
@@ -36,6 +37,7 @@ app.use("/auth", userRouter);
 app.use("/auth", googleRouter);
 app.use("/lists", listRouter);
 app.use("/destinations", destinationRouter);
+app.use("/upload", uploadRouter);
 
 
 app.use(errorHandler);

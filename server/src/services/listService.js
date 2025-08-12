@@ -68,7 +68,7 @@ exports.create = async (payload, userId) => {
             tags: tags || [],
             isPublic: isPublic !== undefined ? isPublic : true,
             owner: userId,
-            coverImage: coverImage || "https://img.freepik.com/free-vector/default-cover-image_23-2148511230.jpg",
+            coverImage: coverImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
             collaborators: [],
             destinations: [],
         });

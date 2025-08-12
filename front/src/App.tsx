@@ -10,8 +10,17 @@ function App() {
   return (
     <>
       <Provider store={store}>
-        <RouterProvider router={router} />
-        <SnackbarProvider />
+        <SnackbarProvider 
+          maxSnack={3}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          dense
+          preventDuplicate
+        >
+          <RouterProvider router={router} />
+        </SnackbarProvider>
       </Provider>
 
     </>

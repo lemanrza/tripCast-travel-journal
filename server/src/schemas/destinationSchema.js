@@ -4,7 +4,7 @@ const destinationSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
         country: { type: String, required: true, trim: true },
-        datePlanned: { type: Date, required: true },
+        datePlanned: { type: Date, default: null },
         dateVisited: { type: Date, default: null },
         status: {
             type: String,

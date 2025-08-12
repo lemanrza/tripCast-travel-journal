@@ -1,471 +1,328 @@
-import { useState, useRef, useEffect } from "react";
-import controller from "@/services/commonRequest";
-import endpoints from "@/services/api";
-import { enqueueSnackbar } from "notistack";
-import { getUserIdFromToken, isTokenExpired } from "@/utils/auth";
-import type { User } from "@/types/userType";
-import type { RootState } from "@/store/store";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Camera, Edit, MapPin, Calendar, Globe, Instagram, Twitter, Plus, Mail, Phone } from "lucide-react";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useSelector } from "react-redux";
-import Navigation from "@/components/Navigation";
+import type { RootState } from "@/store/store";
+import controller from "@/services/commonRequest";
+import type { User } from "@/types/userType";
+import endpoints from "@/services/api";
 
-const Profile = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [imagePreview, setImagePreview] = useState<string>("");
-  const [userData, setUserData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [formData, setFormData] = useState<User>({
-    fullName: "",
-    email: "",
-    location: "",
-    bio: "",
-  });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const DEFAULT_AVATAR_URL =
-    "https://static.vecteezy.com/system/resources/previews/019/879/186/non_2x/user-icon-on-transparent-background-free-png.png";
+const formatSince = (iso: string | null | undefined): string => {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+  } catch {
+    return "—";
+  }
+};
 
-  const isCustomAvatar = (avatarUrl: string | undefined) => {
-    return avatarUrl && avatarUrl !== DEFAULT_AVATAR_URL;
-  };
-  const reduxUser = useSelector((state: RootState) => state.user);
-
+export default function ProfilePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const userRedux = useSelector((state: RootState) => state.user);
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        if (isTokenExpired()) {
-          localStorage.removeItem("token");
-          window.location.href = "/";
-          return;
-        }
-
-        const userId = getUserIdFromToken();
-        if (!userId) {
-          localStorage.removeItem("token");
-          window.location.href = "/";
-          return;
-        }
-
-        const response = await controller.getOne(`${endpoints.users}/user`, reduxUser?.id || userId);
-        setUserData(response.data);
-        console.log(response)
-
-        setFormData({
-          fullName: response.data.fullName || "",
-          email: response.data.email || "",
-          location: response.data.location || "",
-          bio: response.data.bio || "",
-        });
-      } catch (error: any) {
-        console.error("Error fetching user data:", error);
-
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem("token");
-          window.location.href = "/";
-          return;
-        }
-
-        enqueueSnackbar("Failed to load user data", {
-          variant: "error",
-          autoHideDuration: 2000,
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "right",
-          },
-        });
-      } finally {
-        setIsLoading(false);
+    const fetchCurrentUser = async () => {
+      if (!userRedux?.id) {
+        console.error("User ID not found");
+        return;
       }
+      const userData = await controller.getOne(`${endpoints.users}/user`, userRedux.id);
+      setUser(userData.data);
     };
-    fetchUserData();
-  }, []);
+    fetchCurrentUser();
+  }, [userRedux?.id]);
+  console.log(user)
+  const [openEdit, setOpenEdit] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const since = useMemo(() => formatSince(user?.createdAt), [user?.createdAt]);
+  const hasLocation = Boolean(user?.location);
+  const hasBio = Boolean(user?.bio && user.bio.trim());
+  const hasAnySocial = Boolean(
+    (user?.socials?.website && user?.socials.website.trim()) ||
+    (user?.socials?.instagram && user?.socials.instagram.trim()) ||
+    (user?.socials?.twitter && user?.socials.twitter.trim())
+  );
+
+  const initials = (user?.fullName || "").split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      enqueueSnackbar("Please select a valid image file (JPEG, PNG, or GIF)", {
-        variant: "error",
-        autoHideDuration: 3000,
-        anchorOrigin: {
-          vertical: "bottom",
-          horizontal: "right",
-        },
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      enqueueSnackbar("Image size must be less than 5MB", {
-        variant: "error",
-        autoHideDuration: 3000,
-        anchorOrigin: {
-          vertical: "bottom",
-          horizontal: "right",
-        },
-      });
-      return;
-    }
-
-    try {
-      setIsUploadingImage(true);
-
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-
-      const uploadFormData = new FormData();
-      uploadFormData.append("avatar", file);
-
-      const userId = getUserIdFromToken();
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/auth/me/${userId}/upload-image`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: uploadFormData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("❌ Server error:", errorData);
-        throw new Error(errorData.message || "Failed to upload image");
-      }
-
-      const result = await response.json();
-
-      setUserData((prev: any) => {
-        const updatedData = {
-          ...prev,
-          profile: {
-            ...prev.profile,
-            avatar: result.data.avatar,
-            public_id: result.data.public_id,
-          },
-        };
-        return updatedData;
-      });
-
-      URL.revokeObjectURL(previewUrl);
-      setImagePreview("");
-
-      enqueueSnackbar("Profile image updated successfully!", {
-        variant: "success",
-        autoHideDuration: 3000,
-        anchorOrigin: {
-          vertical: "bottom",
-          horizontal: "right",
-        },
-      });
-    } catch (error: any) {
-      console.error("❌ Error uploading image:", error);
-
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-        setImagePreview("");
-      }
-
-      enqueueSnackbar(
-        error.message || "Failed to upload image. Please try again.",
-        {
-          variant: "error",
-          autoHideDuration: 3000,
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "right",
-          },
-        }
-      );
-    } finally {
-      setIsUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleDeleteImage = async () => {
-    try {
-      setIsUploadingImage(true);
-
-      const userId = getUserIdFromToken();
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/auth/me/${userId}/delete-image`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete image");
-      }
-
-      await response.json();
-
-      setUserData((prev: any) => ({
-        ...prev,
-        profile: {
-          ...prev.profile,
-          avatar: DEFAULT_AVATAR_URL,
-          public_id: undefined,
-        },
-      }));
-
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-        setImagePreview("");
-      }
-
-      enqueueSnackbar("Profile image removed successfully!", {
-        variant: "success",
-        autoHideDuration: 3000,
-        anchorOrigin: {
-          vertical: "bottom",
-          horizontal: "right",
-        },
-      });
-    } catch (error: any) {
-      console.error("❌ Error deleting image:", error);
-      enqueueSnackbar(
-        error.message || "Failed to remove image. Please try again.",
-        {
-          variant: "error",
-          autoHideDuration: 3000,
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "right",
-          },
-        }
-      );
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#00B878] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
+    const reader = new FileReader();
+    reader.onload = () => setPreviewUrl(String(reader.result));
+    reader.readAsDataURL(file);
   }
 
-  if (!userData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Failed to load user data. Please try refreshing the page.</p>
-        </div>
-      </div>
-    );
+  function saveProfile(e?: React.FormEvent) {
+    e?.preventDefault?.();
+    setOpenEdit(false);
   }
 
   return (
-    <div className="min-h-screen flex">
-      <div className="flex-1 p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold dark:text-white">Profile</h1>
-        </div>
+    <div className="min-h-screen bg-neutral-50">
 
-        <div className="bg-white dark:bg-[#262626] rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
-          <div className="flex items-start gap-6">
-            <div className="relative group">
-              <div
-                className="w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-semibold overflow-hidden transition-all duration-200 group-hover:shadow-xl group-hover:scale-[1.02] mx-auto bg-[#00B878] dark:bg-[#00B878]"
-              >
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Profile Preview"
-                    className="w-full h-full object-cover"
+      {/* Profile header */}
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start">
+              {/* Avatar + change */}
+              <div className="relative">
+                <Avatar className="h-28 w-28 ring-2 ring-white shadow-sm">
+                  <AvatarImage
+                    src={previewUrl || (typeof user?.profileImage === 'string' ? user.profileImage : user?.profileImage?.url) || ''}
+                    alt={user?.fullName || ''}
                   />
-                ) : userData?.profileImage?.url ? (
-                  <img
-                    src={userData.profileImage.url}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  userData?.fullName?.charAt(0) +
-                  userData?.fullName?.charAt(1)
-                )}
+                  <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow ring-1 ring-neutral-200 hover:scale-105">
+                  <Camera className="h-4 w-4" />
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
+              {/* Name + meta */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold leading-tight">{user?.fullName}</h1>
+                </div>
 
-              <div className="mt-3 flex flex-col items-center gap-2">
-                <button
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${isUploadingImage
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-[#00B878] text-white hover:bg-emerald-600 border border-[#00B878] hover:border-emerald-600"
-                    }`}
-                  onClick={!isUploadingImage ? triggerFileInput : undefined}
-                  disabled={isUploadingImage}
-                >
-                  {isUploadingImage ? (
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    {hasLocation ? (
+                      <span>{user?.location}</span>
+                    ) : (
+                      <button
+                        className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
+                        onClick={() => setOpenEdit(true)}
+                      >
+                        Add location
+                      </button>
+                    )}
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" /> Member since {since}
+                  </span>
+                </div>
+
+                <div className="text-sm text-neutral-700">
+                  {hasBio ? (
+                    <p>{user?.bio}</p>
+                  ) : (
+                    <button
+                      className="rounded-full border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                      onClick={() => setOpenEdit(true)}
+                    >
+                      Add a short bio
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  {hasAnySocial ? (
                     <>
-                      <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent"></div>
-                      <span>Uploading...</span>
+                      {user?.socials?.website && (
+                        <a href={user.socials.website} className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline">
+                          <Globe className="h-4 w-4" /> {new URL(user.socials.website).host}
+                        </a>
+                      )}
+                      {user?.socials?.instagram && (
+                        <a href={user.socials.instagram} className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline">
+                          <Instagram className="h-4 w-4" /> instagram
+                        </a>
+                      )}
+                      {user?.socials?.twitter && (
+                        <a href={user.socials.twitter} className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline">
+                          <Twitter className="h-4 w-4" /> twitter
+                        </a>
+                      )}
                     </>
                   ) : (
-                    <>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      >
-                        <path d="M12 2L12 22M2 12L22 12" />
-                      </svg>
-                      <span>Change Photo</span>
-                    </>
+                    <button
+                      className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                      onClick={() => setOpenEdit(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add social links
+                    </button>
                   )}
-                </button>
+                </div>
+              </div>
 
-                {/* Show remove button only if user has a custom avatar (not default) and no preview */}
-                {isCustomAvatar(userData?.profileImage?.url) && !imagePreview && (
-                  <button
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 ${isUploadingImage
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200 hover:border-red-300"
-                      }`}
-                    onClick={!isUploadingImage ? handleDeleteImage : undefined}
-                    disabled={isUploadingImage}
-                  >
-                    {isUploadingImage ? (
-                      <>
-                        <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent"></div>
-                        <span>Removing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        >
-                          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14ZM10 11v6M14 11v6" />
-                        </svg>
-                        <span>Remove Photo</span>
-                      </>
-                    )}
-                  </button>
-                )}
+              {/* Edit button */}
+              <div className="flex justify-end">
+                <Button onClick={() => setOpenEdit(true)} className="rounded-xl">
+                  <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                </Button>
               </div>
             </div>
 
-            <div className="flex-1">
-              <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-1">
-                {userData?.fullName || "User"}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                {formData.bio || "No bio available"}
-              </p>
-
-              <div className="flex items-center gap-6 text-gray-500 text-sm dark:text-gray-400 mb-6">
-                <div className="flex items-center gap-1">
-                  <span>📍</span>
-                  <span>{formData.location || "Location not set"}</span>
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-6">
+              {/* {[
+                [user.lists.destinations, "Destinations"],
+                [user.lists.completed, "Completed"],
+                [user.lists.lists, "Lists"],
+                [user.lists.entries, "Entries"],
+                [user.lists.followers, "Followers"],
+                [user.lists.following, "Following"],
+              ].map(([value, label], i) => (
+                <div key={i} className="rounded-xl border bg-white p-4 text-center shadow-sm">
+                  <div className="text-2xl font-semibold">{value}</div>
+                  <div className="text-xs text-muted-foreground">{label}</div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span>📅</span>
-                  <span>
-                    Joined{" "}
-                    {new Date(userData?.createdAt).toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-8">
-                <div>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {userData?.connections?.length || 0}
-                  </span>
-                  <p className="text-gray-500 text-sm dark:text-gray-400">Connections</p>
-                </div>
-                <div>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">23</span>
-                  <p className="text-gray-500 text-sm dark:text-gray-400">Active Chats</p>
-                </div>
-              </div>
+              ))} */}
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
+        <div className="mt-6">
+          <Tabs defaultValue="settings">
+            <TabsList className="rounded-2xl">
+              <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+              <TabsTrigger value="achievements">Achievements</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            {/* Activity placeholder */}
+            <TabsContent value="activity" className="mt-4">
+              <Card className="border-none shadow-sm">
+                <CardContent className="p-6 text-sm text-muted-foreground">
+                  No recent activity yet. Start by adding your first destination!
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Achievements placeholder */}
+            <TabsContent value="achievements" className="mt-4">
+              <Card className="border-none shadow-sm">
+                <CardContent className="p-6 text-sm text-muted-foreground">
+                  Earn badges by completing trips and writing journal entries.
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Settings */}
+            <TabsContent value="settings" className="mt-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Account Settings */}
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Account Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email" className="inline-flex items-center gap-2"><Mail className="h-4 w-4" /> Email Address</Label>
+                      <Input id="email" value={user?.email} onChange={(e) => setUser({ ...user, email: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone" className="inline-flex items-center gap-2"><Phone className="h-4 w-4" /> Phone Number</Label>
+                      <Input id="phone" value={user?.phone || ''} onChange={(e) => setUser({ ...user, phone: e.target.value })} />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Privacy Settings */}
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Privacy Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">Public Profile</div>
+                        <div className="text-sm text-muted-foreground">Allow others to find your profile</div>
+                      </div>
+                      <Switch checked={user?.isPublic || false} onCheckedChange={(v) => setUser({ ...user, isPublic: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">Email Notifications</div>
+                        <div className="text-sm text-muted-foreground">Get updates about your lists</div>
+                      </div>
+                      <Switch checked={user?.emailNotifs} onCheckedChange={(v) => setUser({ ...user, emailNotifs: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">Show Travel Stats</div>
+                        <div className="text-sm text-muted-foreground">Display counts on your public profile</div>
+                      </div>
+                      <Switch checked={user?.showStats} onCheckedChange={(v) => setUser({ ...user, showStats: v })} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
-
-
-
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {/* {activeTab === "overview" && (
-          <Overview
-            formData={formData}
-            setFormData={setFormData}
-            userData={userData}
-            setUserData={setUserData}
-          />
-        )} */}
-
-        {/* {activeTab === "settings" && <Settings />} */}
-
-        {/* {activeTab === "privacy" && (
-          <Privacy
-            userData={userData}
-            setUserData={setUserData}
-            formData={formData}
-            handleInputChange={handleInputChange}
-            setFormData={setFormData}
-          />
-        )} */}
-
-        {/* {activeTab === "account" && (
-          <Account
-            userData={userData}
-            formData={formData}
-            handleInputChange={handleInputChange}
-          />
-        )} */}
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+        <DialogContent className="sm:max-w-lg">
+          <form onSubmit={saveProfile} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Edit Profile</DialogTitle>
+              <DialogDescription>Fill in as much or as little as you like — empty fields will stay hidden on your public profile.</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-3">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" value={user?.fullName} onChange={(e) => setUser({ ...user, fullName: e.target.value })} />
+            </div>
+
+            <div className="grid gap-3">
+              <Label htmlFor="location">Location (optional)</Label>
+              <Input
+                id="location"
+                placeholder="e.g., San Francisco, CA"
+                value={user?.location ?? ""}
+                onChange={(e) => setUser({ ...user, location: e.target.value || null })}
+              />
+            </div>
+
+            <div className="grid gap-3">
+              <Label htmlFor="bio">Bio (optional)</Label>
+              <Textarea id="bio" placeholder="Tell the world what you explore" value={user?.bio ?? ""} onChange={(e) => setUser({ ...user, bio: e.target.value })} />
+            </div>
+
+            <Separator />
+            <div className="grid gap-3">
+              <Label className="inline-flex items-center gap-2"><Globe className="h-4 w-4" /> Website</Label>
+              <Input placeholder="https://example.com" value={user?.socials?.website || ''} onChange={(e) => setUser({ ...user, socials: { ...user?.socials, website: e.target.value } })} />
+            </div>
+            <div className="grid gap-3">
+              <Label className="inline-flex items-center gap-2"><Instagram className="h-4 w-4" /> Instagram</Label>
+              <Input placeholder="https://instagram.com/username" value={user?.socials?.instagram || ''} onChange={(e) => setUser({ ...user, socials: { ...user?.socials, instagram: e.target.value } })} />
+            </div>
+            <div className="grid gap-3">
+              <Label className="inline-flex items-center gap-2"><Twitter className="h-4 w-4" /> Twitter / X</Label>
+              <Input placeholder="https://x.com/username" value={user?.socials?.twitter || ''} onChange={(e) => setUser({ ...user, socials: { ...user?.socials, twitter: e.target.value } })} />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpenEdit(false)} className="rounded-xl">Cancel</Button>
+              <Button type="submit" className="rounded-xl">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default Profile;
+}

@@ -8,6 +8,10 @@ import { useSelector } from "react-redux";
 
 export default function Header() {
 const user=useSelector((state:any)=>state.user)
+const logout=()=>{
+  localStorage.removeItem("token");
+  window.location.href = "/";
+}
   const notifications = [
     {
       title: "New collaborator joined",
@@ -46,9 +50,8 @@ const user=useSelector((state:any)=>state.user)
         </div>
         <nav className="flex items-center space-x-7 text-md font-medium text-muted-foreground">
           <NavLink to="/dashboard" className="hover:text-blue-800 transition">Dashboard</NavLink>
-          <NavLink to="/lists" className="hover:text-blue-800 transition">My Lists</NavLink>
+          <NavLink to="/lists" className="hover:text-blue-800 transition">Lists</NavLink>
           <NavLink to="/journals" className="hover:text-blue-800 transition">Journal</NavLink>
-          <NavLink to="/explore" className="hover:text-blue-800 transition">Explore</NavLink>
         </nav>
 
       </div>
@@ -119,7 +122,7 @@ const user=useSelector((state:any)=>state.user)
               <Link to="/settings" className="w-full px-4 py-2"><Settings /> Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/logout" className="w-full px-4 py-2"><LogOut /> Logout</Link>
+              <button onClick={logout} className="w-full px-4 py-2 text-red-600 font-semibold hover:text-red-800"><LogOut className="text-red-600" /> Logout</button>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

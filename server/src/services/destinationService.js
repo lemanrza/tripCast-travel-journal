@@ -2,7 +2,6 @@ const DestinationModel = require("../models/destinationModel.js");
 const TravelListModel = require("../models/travelListModel.js");
 
 exports.getAll = async (userId) => {
-    // Get all destinations from user's accessible lists
     const userLists = await TravelListModel.find({
         $or: [
             { owner: userId },
@@ -26,7 +25,6 @@ exports.getOne = async (destinationId, userId) => {
         throw new Error("Destination not found");
     }
 
-    // Check if user has access to this destination's list
     const list = destination.listId;
     const hasAccess = list.isPublic ||
         list.owner.toString() === userId.toString() ||
@@ -40,7 +38,6 @@ exports.getOne = async (destinationId, userId) => {
 };
 
 exports.getByListId = async (listId, userId) => {
-    // First check if user has access to the list
     const list = await TravelListModel.findById(listId);
 
     if (!list) {
@@ -61,7 +58,6 @@ exports.getByListId = async (listId, userId) => {
 };
 
 exports.getUserDestinations = async (userId) => {
-    // Get destinations from user's own lists
     const userLists = await TravelListModel.find({ owner: userId }).select('_id');
     const listIds = userLists.map(list => list._id);
 
@@ -74,15 +70,13 @@ exports.create = async (payload, userId) => {
     try {
         const { name, country, datePlanned, dateVisited, status, notes, images, listId } = payload;
 
-        // Validate required fields
-        if (!name || !country || !datePlanned || !listId) {
+        if (!name || !country || !listId) {
             return {
                 success: false,
-                message: "Name, country, date planned, and list ID are required",
+                message: "Name, country, and list ID are required",
             };
         }
 
-        // Check if user has write access to the list
         const list = await TravelListModel.findById(listId);
 
         if (!list) {
@@ -204,7 +198,6 @@ exports.delete = async (destinationId, userId) => {
             };
         }
 
-        // Check if user has write access to the list
         const list = destination.listId;
         const hasWriteAccess = list.owner.toString() === userId.toString() ||
             list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
@@ -216,7 +209,6 @@ exports.delete = async (destinationId, userId) => {
             };
         }
 
-        // Remove destination from travel list
         await TravelListModel.findByIdAndUpdate(destination.listId._id, {
             $pull: { destinations: destinationId }
         });
@@ -251,7 +243,6 @@ exports.updateStatus = async (destinationId, status, userId) => {
             };
         }
 
-        // Check if user has write access to the list
         const list = destination.listId;
         const hasWriteAccess = list.owner.toString() === userId.toString() ||
             list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
@@ -263,7 +254,6 @@ exports.updateStatus = async (destinationId, status, userId) => {
             };
         }
 
-        // Validate status
         const validStatuses = ['wishlist', 'planned', 'completed', 'cancelled'];
         if (!validStatuses.includes(status)) {
             return {
@@ -274,7 +264,6 @@ exports.updateStatus = async (destinationId, status, userId) => {
 
         const updateData = { status };
 
-        // If status is completed and no dateVisited, set it to now
         if (status === 'completed' && !destination.dateVisited) {
             updateData.dateVisited = new Date();
         }
@@ -366,23 +355,20 @@ exports.removeImage = async (destinationId, imageId, userId) => {
         if (!destination) {
             return {
                 success: false,
-                message: "Destination not found",
-            };
-        }
+            message: "Destination not found",
+        };
+    }
 
-        // Check if user has write access to the list
-        const list = destination.listId;
-        const hasWriteAccess = list.owner.toString() === userId.toString() ||
-            list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
+    const list = destination.listId;
+    const hasWriteAccess = list.owner.toString() === userId.toString() ||
+        list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
 
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to remove images from this destination",
-            };
-        }
-
-        destination.images = destination.images.filter(
+    if (!hasWriteAccess) {
+        return {
+            success: false,
+            message: "You don't have permission to remove images from this destination",
+        };
+    }        destination.images = destination.images.filter(
             image => image._id.toString() !== imageId
         );
         await destination.save();

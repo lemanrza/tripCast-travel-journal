@@ -15,56 +15,107 @@ import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
+import type { RootState } from "@/store/store";
+import type { User } from "@/types/userType";
+
+interface TravelList {
+  id: string;
+  _id?: string;
+  title: string;
+  description: string;
+  coverImage: string;
+  tags: string[];
+  isPublic: boolean;
+  createdAt: string;
+  owner: string;
+  collaborators: any[];
+  destinations: any[];
+}
 
 
 
 export default function Dashboard() {
-  const [allLists, setAllLists] = useState([]);
-  const user = useSelector((state: any) => state.user);
+  const [myLists, setMyLists] = useState<TravelList[]>([]);
+  const [sharedLists, setSharedLists] = useState<TravelList[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const userRedux = useSelector((state: RootState) => state.user);
+  
   useEffect(() => {
-    if (!user || !user.id) {
+    if (!userRedux || !userRedux.id) {
       console.error("User not found or not logged in");
       return;
     }
-    const fetchLists = async () => {
-      const response = await controller.getAll(endpoints.lists)
-      setAllLists(response.data)
-    }
-    fetchLists()
-  }, [user])
-  // console.log(user.lists)
+    
+    const fetchUser = async () => {
+      try {
+        if (!userRedux.id) return;
+        const response = await controller.getOne(`${endpoints.users}/user`, userRedux.id);
+        setUser(response.data);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+    
+    const fetchMyLists = async () => {
+      try {
+        const response = await controller.getAll(`${endpoints.lists}/my-lists`);
+        setMyLists(response.data || []);
+      } catch (error) {
+        console.error("Failed to fetch my lists:", error);
+      }
+    };
+    
+    const fetchSharedLists = async () => {
+      try {
+        const response = await controller.getAll(`${endpoints.lists}/collaborative`);
+        setSharedLists(response.data || []);
+      } catch (error) {
+        console.error("Failed to fetch shared lists:", error);
+      }
+    };
+    
+    fetchUser();
+    fetchMyLists();
+    fetchSharedLists();
+  }, [userRedux?.id]);
+  console.log(user);
+  
+  // Calculate stats based on fetched lists
+  const totalDestinations = [...myLists, ...sharedLists].reduce((total, list) => total + (list.destinations?.length || 0), 0);
+  const completedDestinations = [...myLists, ...sharedLists].reduce((total, list) => 
+    total + (list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0), 0
+  );
+  const totalCollaborators = myLists.reduce((total, list) => total + (list.collaborators?.length || 0), 0);
+  const listsThisYear = myLists.filter(list => new Date(list.createdAt).getFullYear() === new Date().getFullYear()).length;
+  
   const stats = [
-    { icon: <IoLocationOutline />, label: "Total Destinations", value: user.lists?.reduce((total: number, list: any) => total + (list.destinations?.length || 0), 0) || 0, color: "blue" },
-    { icon: <FaRegStar />, label: "Completed", value: user.lists?.reduce((total: number, list: any) => total + (list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0), 0) || 0, color: "green" },
-    { icon: <LuUsers />, label: "Collaborators", value: user.lists?.reduce((total: number, list: any) => total + (list.collaborators?.length || 0), 0) || 0, color: "purple" },
-    { icon: <CiCalendar />, label: "Lists This Year", value: user.lists?.filter((list: any) => new Date(list.createdAt).getFullYear() === new Date().getFullYear()).length || 0, color: "orange" },
+    { icon: <IoLocationOutline />, label: "Total Destinations", value: totalDestinations, color: "blue" },
+    { icon: <FaRegStar />, label: "Completed", value: completedDestinations, color: "green" },
+    { icon: <LuUsers />, label: "Collaborators", value: totalCollaborators, color: "purple" },
+    { icon: <CiCalendar />, label: "Lists This Year", value: listsThisYear, color: "orange" },
   ];
 
-  const travelListsMe = user.lists?.filter((list: any) => list.owner === user.id) || [];
-  const travelListsShared = allLists.filter((list: any) => 
-    list.collaborators?.some((collab: any) => collab._id === user.id) && list.owner !== user.id
-  ) || [];
-
-  const formatList = (list: any) => ({
+  const formatList = (list: TravelList) => ({
     title: list.title || "Untitled List",
     desc: list.description || "No description available",
     completed: list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0,
     total: list.destinations?.length || 0,
     tags: list.tags || [],
+    coverImage: list.coverImage || "",
     visibility: list.isPublic ? "Public" as const : "Private" as const,
     created: new Date(list.createdAt).toLocaleDateString() || "Unknown",
     collaborators: list.collaborators?.length || 0,
     isNew: false,
   });
 
-  const formattedListsMe = travelListsMe.map(formatList);
-  const formattedListsShared = travelListsShared.map(formatList);
+  const formattedListsMe = myLists.map(formatList);
+  const formattedListsShared = sharedLists.map(formatList);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Welcome back, {user.fullName}! 👋</h1>
+          <h1 className="text-3xl font-semibold">Welcome back, {user?.fullName}! 👋</h1>
           <p className="text-muted-foreground text-md mt-3">Ready for your next adventure?</p>
         </div>
         <Link to={"/create/list"}>
@@ -106,6 +157,10 @@ export default function Dashboard() {
               <div className="grid gap-3">
                 <Label htmlFor="sheet-demo-name">Name</Label>
                 <Input id="sheet-demo-name" defaultValue="Pedro Duarte" />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="sheet-demo-username">Username</Label>
+                <Input id="sheet-demo-username" defaultValue="@peduarte" />
               </div>
             </div>
             <SheetFooter>

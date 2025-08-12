@@ -7,6 +7,7 @@ type TravelListCardProps = {
   completed: number;
   total: number;
   tags: string[];
+  coverImage: string;
   visibility: "Public" | "Private";
   created: string;
   collaborators: number;
@@ -22,31 +23,40 @@ export default function TravelListCard({
   visibility,
   created,
   collaborators,
+  coverImage,
   isNew = false,
 }: TravelListCardProps) {
   const percentage = (completed / total) * 100;
 
   return (
     <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-      {/* Image Placeholder */}
-      <div className="h-40 bg-muted flex items-center justify-center relative">
+      {/* Cover Image */}
+      <div className="h-40 bg-muted flex items-center justify-center relative overflow-hidden">
         {visibility === "Public" ? (
-          <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow">
+          <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow z-10">
             <Globe className="inline w-3 h-3 mr-1" /> Public
           </span>
         ) : (
-          <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow">
+          <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow z-10">
             <Lock className="inline w-3 h-3 mr-1" /> Private
           </span>
         )}
 
         {isNew && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full z-10">
             New
           </span>
         )}
 
-        <span className="text-sm text-muted-foreground">📷 Image Placeholder</span>
+        {coverImage ? (
+          <img 
+            src={coverImage} 
+            alt={title} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-sm text-muted-foreground">📷 No Image</span>
+        )}
       </div>
 
       {/* Body */}
