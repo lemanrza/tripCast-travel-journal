@@ -88,9 +88,9 @@ function DestinationCard({ index, control, register, errors, onRemove, setValue 
                     <Textarea placeholder="Anything important about this destination..." {...register(`destinations.${index}.notes` as const)} />
                 </div>
 
-                {/* Images nested array */}
+                {/* Destination image */}
                 <div className="md:col-span-2">
-                    <NestedImages control={control} register={register} destIndex={index} />
+                    <NestedImages destIndex={index} control={control} register={register} setValue={setValue} />
                 </div>
             </CardContent>
         </Card>
