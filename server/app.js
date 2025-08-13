@@ -8,6 +8,7 @@ require("./src/models/userModel.js");
 require("./src/models/journalEntryModel.js");
 require("./src/models/travelListModel.js");
 require("./src/models/destinationModel.js");
+require("./src/models/commentModel.js");
 
 const errorHandler = require("./src/middleware/errorHandler.js")
 const userRouter = require("./src/routes/userRoute.js")

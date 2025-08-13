@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
 import JournalDetailDisplay from "@/components/JournalDetailDisplay";
+import { useSelector } from "react-redux";
+import type { User } from "@/types/userType";
 
 export type JournalComment = {
   id: string;
@@ -28,13 +30,21 @@ export default function JournalDetailPage() {
   const navigate = useNavigate();
 
   const [journal, setJournal] = useState<JournalDetail | null>(null);
-  const [comments] = useState<JournalComment[]>([]);
+  const [comments, setComments] = useState<JournalComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [user, setUser] = useState<User | null>(null);
+  const reduxUser = useSelector((state: any) => state.user);
   useEffect(() => {
     if (!id) return;
-
+    const fetchUser = async () => {
+      try {
+        const response = await controller.getOne(`${endpoints.users}/user`, reduxUser.id);
+        setUser(response.data);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
     const fetchJournal = async () => {
       try {
         setLoading(true);
@@ -54,12 +64,12 @@ export default function JournalDetailPage() {
               name: backendData.author?.fullName || backendData.author?.name || "Unknown Author",
               avatarUrl: backendData.author?.profileImage?.url || backendData.author?.avatarUrl
             },
-            photos: backendData.photos?.map((photo: any) => 
+            photos: backendData.photos?.map((photo: any) =>
               typeof photo === 'string' ? photo : photo.url
             ) || [],
             likesCount: backendData.likes?.length || 0,
           };
-          
+
           console.log("Mapped journal data:", mappedJournal);
           setJournal(mappedJournal);
         } else {
@@ -73,7 +83,32 @@ export default function JournalDetailPage() {
       }
     };
 
+    const fetchComments = async () => {
+      try {
+        const response = await controller.getAll(`${endpoints.journals}/${id}/comments`);
+        
+        if (response && response.data) {
+          const mappedComments: JournalComment[] = response.data.map((comment: any) => ({
+            id: comment._id || comment.id,
+            author: {
+              name: comment.authorId?.fullName || comment.authorId?.name || "Anonymous",
+              avatarUrl: comment.authorId?.profileImage?.url || comment.authorId?.avatarUrl
+            },
+            content: comment.content,
+            createdAt: comment.createdAt
+          }));
+          
+          setComments(mappedComments);
+        }
+      } catch (err: any) {
+        console.error("Error fetching comments:", err);
+        // Don't set error state for comments, just log it
+      }
+    };
+
+    fetchUser();
     fetchJournal();
+    fetchComments();
   }, [id]);
 
   const handleToggleLike = async () => {
@@ -92,9 +127,31 @@ export default function JournalDetailPage() {
   };
 
   const handleAddComment = async (text: string) => {
-    if (!journal) return;
+    if (!journal || !text.trim()) return;
 
-    console.log('Adding comment:', text);
+    try {
+      const response = await controller.post(`${endpoints.journals}/${journal.id}/comments`, {
+        content: text.trim()
+      });
+
+      if (response && response.data) {
+        const newComment: JournalComment = {
+          id: response.data._id || response.data.id,
+          author: {
+            name: response.data.authorId?.fullName || response.data.authorId?.name || "You",
+            avatarUrl: response.data.authorId?.profileImage?.url || response.data.authorId?.avatarUrl
+          },
+          content: response.data.content,
+          createdAt: response.data.createdAt
+        };
+
+        // Add the new comment to the beginning of the list (most recent first)
+        setComments(prev => [newComment, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // You might want to show a toast notification here
+    }
   };
 
   const handleBack = () => {
@@ -128,6 +185,7 @@ export default function JournalDetailPage() {
 
   return (
     <JournalDetailDisplay
+      user={user}
       journal={journal}
       comments={comments}
       onBack={handleBack}

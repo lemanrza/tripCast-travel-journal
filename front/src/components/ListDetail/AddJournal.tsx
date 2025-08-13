@@ -8,9 +8,9 @@ type Destination = { id?: string; _id?: string; name?: string; country?: string 
 export type CreateJournalPayload = {
   title: string;
   content: string;
-  destination: string; // destination _id
+  destination: string;
   public: boolean;
-  photos: File[]; // raw files; caller should upload -> URLs
+  photos: File[]; 
 };
 
 type Props = {
