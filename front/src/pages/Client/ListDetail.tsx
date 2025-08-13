@@ -11,6 +11,8 @@ import { useState, useEffect } from "react";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
 import Members from "@/components/ListDetail/Members";
+import { Dialog, DialogDescription, DialogFooter, DialogTitle, DialogTrigger, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { enqueueSnackbar } from "notistack";
 
 // Demo data types
 
@@ -20,6 +22,121 @@ export default function TravelListDetail() {
   const [listData, setListData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState({
+    imageFile: null as File | null,
+    imageUrl: "",
+    name: "",
+    country: "",
+    status: "" as "" | "wishlist" | "planned" | "completed",
+    datePlanned: "",
+    dateVisited: "",
+    notes: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function resetAddForm() {
+    setAddForm({
+      imageFile: null,
+      imageUrl: "",
+      name: "",
+      country: "",
+      status: "",
+      datePlanned: "",
+      dateVisited: "",
+      notes: "",
+    });
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setAddForm((s) => ({ ...s, imageFile: file, imageUrl: url }));
+  }
+
+  function handleStatusChange(next: "wishlist" | "planned" | "completed") {
+    setAddForm((s) => {
+      if (next === "wishlist") return { ...s, status: next, datePlanned: "", dateVisited: "" };
+      if (next === "planned") return { ...s, status: next, dateVisited: "" };
+      return { ...s, status: next };
+    });
+  }
+
+  const canSubmit =
+    addForm.name.trim() &&
+    addForm.country.trim() &&
+    addForm.status &&
+    ((addForm.status === "wishlist") ||
+      (addForm.status === "planned" && addForm.datePlanned) ||
+      (addForm.status === "completed" && addForm.datePlanned && addForm.dateVisited));
+
+  async function handleAdd() {
+    if (!canSubmit || !listId) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      let imageData = null;
+
+      if (addForm.imageFile) {
+        const formData = new FormData();
+        formData.append("image", addForm.imageFile);
+
+        const uploadResponse = await controller.post(`${endpoints.upload}/image`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (uploadResponse.success && uploadResponse.data?.url) {
+          imageData = {
+            url: uploadResponse.data.url,
+            public_id: uploadResponse.data.public_id,
+          };
+        } else {
+          throw new Error("Failed to upload image");
+        }
+      }
+
+      const destinationPayload = {
+        name: addForm.name.trim(),
+        country: addForm.country.trim(),
+        status: addForm.status,
+        datePlanned: addForm.datePlanned || null,
+        dateVisited: addForm.dateVisited || null,
+        notes: addForm.notes.trim() || null,
+        image: imageData,
+        listId: listId,
+      };
+
+      console.log("Creating destination:", destinationPayload);
+
+      const response = await controller.post(endpoints.destinations, destinationPayload);
+
+      if (response && response.data) {
+        const newDestination = response.data;
+        setListData((prev: any) => {
+          const prevDests = prev?.destinations ?? [];
+          return { ...prev, destinations: [newDestination, ...prevDests] };
+        });
+
+        setAddOpen(false);
+        resetAddForm();
+        
+        enqueueSnackbar(`✅ Destination "${addForm.name}" created successfully!`, { variant: "success" });
+        console.log("Destination created successfully:", newDestination);
+      } else {
+        throw new Error("Failed to create destination");
+      }
+    } catch (error: any) {
+      console.error("Error creating destination:", error);
+      enqueueSnackbar(`❌ Failed to create destination: ${error.message || "Unknown error"}`, { variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
 
 
   useEffect(() => {
@@ -131,8 +248,8 @@ export default function TravelListDetail() {
         {/* <StatCard icon={<Pencil className="h-5 w-5 text-orange-500" />} value={statJournals} label="Journal Entries" /> */}
       </div>
 
-      <Members 
-        collaborators={listData?.collaborators || []} 
+      <Members
+        collaborators={listData?.collaborators || []}
         onSearchUsers={async (q) => {
           const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
           if (response && response.data) {
@@ -152,7 +269,7 @@ export default function TravelListDetail() {
           if (!response || !response.success) {
             throw new Error("Invite failed");
           }
-        }} 
+        }}
       />
 
       {/* Tabs */}
@@ -166,8 +283,138 @@ export default function TravelListDetail() {
         {/* Destinations Tab */}
         <TabsContent value="destinations">
           <div className="mb-4 flex justify-end">
-            <Button variant="default" className="gap-2"><Plus className="h-4 w-4" /> Add Destination</Button>
+            <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
+              <DialogTrigger asChild>
+                <Button variant="default" className="gap-2">
+                  <Plus className="h-4 w-4" /> Add Destination
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add Destination</DialogTitle>
+                  <DialogDescription>Fill in the details for the new destination.</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-5">
+                  {/* Image */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Image</p>
+                    <div className="flex items-center gap-4">
+                      <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                        {addForm.imageUrl ? (
+                          <img src={addForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">No image</span>
+                        )}
+                      </div>
+                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                        <span>Upload</span>
+                        <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Basics */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Name *</p>
+                      <input
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        placeholder="e.g., Paris"
+                        value={addForm.name}
+                        onChange={(e) => setAddForm((s) => ({ ...s, name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Country *</p>
+                      <input
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        placeholder="e.g., France"
+                        value={addForm.country}
+                        onChange={(e) => setAddForm((s) => ({ ...s, country: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-2 sm:col-span-2">
+                      <p className="text-xs text-muted-foreground">Status *</p>
+                      <select
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={addForm.status}
+                        onChange={(e) => handleStatusChange(e.target.value as any)}
+                      >
+                        <option value="" disabled>Select status</option>
+                        <option value="wishlist">Wishlist</option>
+                        <option value="planned">Planned</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Dates (conditional) */}
+                  {addForm.status === "planned" && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Planned Date *</p>
+                        <input
+                          type="date"
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={addForm.datePlanned}
+                          onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {addForm.status === "completed" && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Planned Date *</p>
+                        <input
+                          type="date"
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={addForm.datePlanned}
+                          onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Visited Date *</p>
+                        <input
+                          type="date"
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={addForm.dateVisited}
+                          onChange={(e) => setAddForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Notes</p>
+                    <textarea
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      rows={4}
+                      placeholder="Anything important about this destination..."
+                      value={addForm.notes}
+                      onChange={(e) => setAddForm((s) => ({ ...s, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="secondary" onClick={() => { setAddOpen(false); resetAddForm(); }} disabled={isSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button variant="default" onClick={handleAdd} disabled={!canSubmit || isSubmitting}>
+                    {isSubmitting ? "Adding..." : "Add"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
+
 
           <Card>
             {listData?.destinations?.length > 0 ? (

@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 
 type TravelListCardProps = {
-  id: string,
+  id: string;
   title: string;
   desc: string;
   completed: number;
@@ -34,33 +34,25 @@ export default function TravelListCard({
   return (
     <Link to={`/lists/${id}`}>
       <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-        {/* Cover Image */}
-        <div className="h-40 bg-muted flex items-center justify-center relative overflow-hidden">
+        {/* Image Placeholder */}
+        <div className="h-40 bg-muted flex items-center justify-center relative">
           {visibility === "Public" ? (
-            <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow z-10">
+            <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow">
               <Globe className="inline w-3 h-3 mr-1" /> Public
             </span>
           ) : (
-            <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow z-10">
+            <span className="absolute top-2 right-2 bg-white text-xs px-2 py-0.5 rounded-full shadow">
               <Lock className="inline w-3 h-3 mr-1" /> Private
             </span>
           )}
 
           {isNew && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full z-10">
+            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
               New
             </span>
           )}
 
-          {coverImage ? (
-            <img
-              src={coverImage}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-sm text-muted-foreground">📷 No Image</span>
-          )}
+          <img src={coverImage} alt={title} className="object-cover w-full h-full" />
         </div>
 
         {/* Body */}

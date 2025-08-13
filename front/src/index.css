@@ -125,10 +125,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* Ensure notistack appears consistently in top-right */
-.SnackbarContainer-top.SnackbarContainer-right {
-  top: 24px !important;
-  right: 24px !important;
-  z-index: 9999 !important;
-}
