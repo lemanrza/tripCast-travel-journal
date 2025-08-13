@@ -74,7 +74,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-neutral-50">
 
       {/* Profile header */}
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mx-auto max-w-8xl px-4 py-8">
         <Card className="border-none shadow-sm">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start">

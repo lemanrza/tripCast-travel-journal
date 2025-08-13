@@ -96,7 +96,10 @@ exports.getUserOwnDestinations = async (req, res, next) => {
 exports.createDestination = async (req, res, next) => {
     try {
         const userId = req.user._id;
-        const { name, country, datePlanned, dateVisited, status, notes, images, listId } = req.body;
+        const { name, country, datePlanned, dateVisited, status, notes, image, listId } = req.body;
+
+        console.log("Creating destination with data:", req.body);
+        console.log("Image data received:", image);
 
         const destinationData = {
             name,
@@ -105,7 +108,7 @@ exports.createDestination = async (req, res, next) => {
             dateVisited,
             status,
             notes,
-            images,
+            image,
             listId,
         };
 
@@ -131,7 +134,7 @@ exports.updateDestination = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user._id;
-        const { name, country, datePlanned, dateVisited, status, notes, images } = req.body;
+        const { name, country, datePlanned, dateVisited, status, notes, image } = req.body;
 
         const updateData = {
             name,
@@ -140,7 +143,7 @@ exports.updateDestination = async (req, res, next) => {
             dateVisited,
             status,
             notes,
-            images,
+            image,
         };
 
         const response = await update(id, updateData, userId);

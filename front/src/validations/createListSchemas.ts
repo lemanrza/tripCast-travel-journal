@@ -13,7 +13,7 @@ const destinationSchema = z
     datePlanned: z.string().optional(),
     dateVisited: z.string().optional().nullable(),
     notes: z.string().default(""),
-    images: z.array(imageSchema).default([]),
+    image: imageSchema.optional(),
     listId: z.string().optional(),
   })
   .superRefine((val, ctx) => {

@@ -53,7 +53,7 @@ export default function CreateTravelList() {
           dateVisited: "",
           status: "wishlist" as const,
           notes: "",
-          images: [],
+          image: undefined,
         },
       ],
     },
@@ -185,11 +185,12 @@ export default function CreateTravelList() {
                   dateVisited: destination.dateVisited || null,
                   status: destination.status || "wishlist",
                   notes: destination.notes || "",
-                  images: destination.images || [],
+                  image: destination.image || null,
                   listId: listId,
                 };
 
-                console.log("Creating destination:", destinationPayload);
+                console.log("Creating destination with payload:", destinationPayload);
+                console.log("Image data being sent:", destination.image);
                 const result = await controller.post(`${endpoints.destinations}`, destinationPayload);
                 
                 if (result && result.data) {
@@ -449,7 +450,7 @@ export default function CreateTravelList() {
                       dateVisited: "",
                       status: "wishlist",
                       notes: "",
-                      images: [],
+                      image: undefined,
                     })
                   }
                 >

@@ -13,13 +13,10 @@ const destinationSchema = new mongoose.Schema(
             required: true
         },
         notes: { type: String, trim: true, default: '' },
-        images:
-            [
-            {
-                    url: { type: String, required: true },
-                    public_id: { type: String, required: true },
-                },
-            ],
+        image: {
+            url: { type: String, default: null },
+            public_id: { type: String, default: null },
+        },
         listId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'TravelList',

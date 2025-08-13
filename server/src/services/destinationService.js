@@ -68,7 +68,7 @@ exports.getUserDestinations = async (userId) => {
 
 exports.create = async (payload, userId) => {
     try {
-        const { name, country, datePlanned, dateVisited, status, notes, images, listId } = payload;
+        const { name, country, datePlanned, dateVisited, status, notes, image, listId } = payload;
 
         if (!name || !country || !listId) {
             return {
@@ -102,7 +102,7 @@ exports.create = async (payload, userId) => {
             dateVisited: dateVisited || null,
             status: status || 'wishlist',
             notes: notes || '',
-            images: images || [],
+            image: image || null,
             listId,
         });
 
@@ -152,7 +152,7 @@ exports.update = async (destinationId, payload, userId) => {
             };
         }
 
-        const { name, country, datePlanned, dateVisited, status, notes, images } = payload;
+        const { name, country, datePlanned, dateVisited, status, notes, image } = payload;
 
         const updateData = {};
         if (name) updateData.name = name;
@@ -161,7 +161,7 @@ exports.update = async (destinationId, payload, userId) => {
         if (dateVisited !== undefined) updateData.dateVisited = dateVisited;
         if (status) updateData.status = status;
         if (notes !== undefined) updateData.notes = notes;
-        if (images !== undefined) updateData.images = images;
+        if (image !== undefined) updateData.image = image;
 
         const updatedDestination = await DestinationModel.findByIdAndUpdate(
             destinationId,
@@ -291,7 +291,7 @@ exports.updateStatus = async (destinationId, status, userId) => {
     }
 };
 
-exports.addImage = async (destinationId, imageData, userId) => {
+exports.updateImage = async (destinationId, imageData, userId) => {
     try {
         const destination = await DestinationModel.findById(destinationId)
             .populate("listId", "owner collaborators");
@@ -311,7 +311,7 @@ exports.addImage = async (destinationId, imageData, userId) => {
         if (!hasWriteAccess) {
             return {
                 success: false,
-                message: "You don't have permission to add images to this destination",
+                message: "You don't have permission to update the image for this destination",
             };
         }
 
@@ -324,7 +324,7 @@ exports.addImage = async (destinationId, imageData, userId) => {
             };
         }
 
-        destination.images.push({ url, public_id });
+        destination.image = { url, public_id };
         await destination.save();
 
         const updatedDestination = await DestinationModel.findById(destinationId)
@@ -333,7 +333,7 @@ exports.addImage = async (destinationId, imageData, userId) => {
         return {
             success: true,
             data: updatedDestination,
-            message: "Image added successfully!",
+            message: "Image updated successfully!",
         };
     } catch (error) {
         let message = "Internal server error";
@@ -347,7 +347,7 @@ exports.addImage = async (destinationId, imageData, userId) => {
     }
 };
 
-exports.removeImage = async (destinationId, imageId, userId) => {
+exports.clearImage = async (destinationId, userId) => {
     try {
         const destination = await DestinationModel.findById(destinationId)
             .populate("listId", "owner collaborators");
@@ -355,22 +355,22 @@ exports.removeImage = async (destinationId, imageId, userId) => {
         if (!destination) {
             return {
                 success: false,
-            message: "Destination not found",
-        };
-    }
+                message: "Destination not found",
+            };
+        }
 
-    const list = destination.listId;
-    const hasWriteAccess = list.owner.toString() === userId.toString() ||
-        list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
+        const list = destination.listId;
+        const hasWriteAccess = list.owner.toString() === userId.toString() ||
+            list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
 
-    if (!hasWriteAccess) {
-        return {
-            success: false,
-            message: "You don't have permission to remove images from this destination",
-        };
-    }        destination.images = destination.images.filter(
-            image => image._id.toString() !== imageId
-        );
+        if (!hasWriteAccess) {
+            return {
+                success: false,
+                message: "You don't have permission to remove the image from this destination",
+            };
+        }
+        
+        destination.image = null;
         await destination.save();
 
         const updatedDestination = await DestinationModel.findById(destinationId)
@@ -379,7 +379,7 @@ exports.removeImage = async (destinationId, imageId, userId) => {
         return {
             success: true,
             data: updatedDestination,
-            message: "Image removed successfully!",
+            message: "Image cleared successfully!",
         };
     } catch (error) {
         let message = "Internal server error";
