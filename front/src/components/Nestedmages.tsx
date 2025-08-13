@@ -1,37 +1,108 @@
-import { useFieldArray } from "react-hook-form";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { Input } from "./ui/input";
+import { useState } from "react";
+import controller from "@/services/commonRequest";
+import endpoints from "@/services/api";
+import { useWatch } from "react-hook-form";
 
-function NestedImages({ control, register, destIndex }: any) {
-  const { fields, append, remove } = useFieldArray({ control, name: `destinations.${destIndex}.images` });
+function NestedImages({ destIndex, control, register, setValue }: any) {
+  const [uploading, setUploading] = useState(false);
+
+  // Watch the current image value using useWatch
+  const currentImage = useWatch({ control, name: `destinations.${destIndex}.image` });
+
+  // Handle single image upload to Cloudinary
+  const handleImageUpload = async (file: File): Promise<void> => {
+    if (!file) return;
+
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await controller.post(`${endpoints.upload}/image`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.success && response.data?.url) {
+        // Update the image field with the uploaded data
+        setValue(`destinations.${destIndex}.image`, {
+          url: response.data.url,
+          public_id: response.data.public_id,
+        });
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error: any) {
+      console.error("Image upload error:", error);
+      if (error.response?.data?.message) {
+        alert(`Failed to upload image: ${error.response.data.message}`);
+      } else {
+        alert("Failed to upload image. Please try again.");
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const clearImage = () => {
+    setValue(`destinations.${destIndex}.image`, undefined);
+  };
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="font-medium">Images</Label>
-        <Button type="button" variant="secondary" onClick={() => append({ url: "", public_id: "" })}>
-          <Plus className="mr-2 h-4 w-4" /> Add Image
-        </Button>
-      </div>
+      <Label className="font-medium">Image</Label>
 
-      {fields.length === 0 && (
-        <p className="text-sm text-muted-foreground">No images yet. Add a URL and public_id for each uploaded image.</p>
+      {currentImage?.url ? (
+        <div className="space-y-2">
+          <img
+            src={currentImage.url}
+            alt="Destination image"
+            className="w-full h-32 object-cover rounded-lg"
+          />
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Destination Image</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearImage}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="border-dashed border-2 rounded-lg p-6 text-center">
+          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground mb-2">
+            {uploading ? "Uploading..." : "Upload an image for this destination"}
+          </p>
+          <Input
+            type="file"
+            accept="image/*"
+            className="max-w-xs mx-auto"
+            disabled={uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                await handleImageUpload(file);
+              }
+            }}
+          />
+        </div>
       )}
 
-      <div className="space-y-3">
-        {fields.map((field, idx) => (
-          <div key={field.id} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Input placeholder="Image URL" {...register(`destinations.${destIndex}.images.${idx}.url` as const)} />
-            <div className="flex gap-2">
-              <Input placeholder="Public ID" {...register(`destinations.${destIndex}.images.${idx}.public_id` as const)} />
-              <Button type="button" variant="ghost" size="icon" onClick={() => remove(idx)} aria-label="Remove image">
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        ))}
+      {/* Hidden inputs for form registration */}
+      <div className="hidden">
+        <Input {...register(`destinations.${destIndex}.image.url` as const)} />
+        <Input {...register(`destinations.${destIndex}.image.public_id` as const)} />
       </div>
     </div>
   );

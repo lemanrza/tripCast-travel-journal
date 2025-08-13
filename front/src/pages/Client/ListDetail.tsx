@@ -13,8 +13,8 @@ import endpoints from "@/services/api";
 import Members from "@/components/ListDetail/Members";
 import { Dialog, DialogDescription, DialogFooter, DialogTitle, DialogTrigger, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { enqueueSnackbar } from "notistack";
-
-// Demo data types
+import AddJournalDialog from "@/components/ListDetail/AddJournal";
+import { FaRegComment, FaRegHeart } from "react-icons/fa";
 
 
 export default function TravelListDetail() {
@@ -34,6 +34,8 @@ export default function TravelListDetail() {
     notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [journals, setJournals] = useState<any[]>([]);
+  const [journalsLoading, setJournalsLoading] = useState(false);
 
   function resetAddForm() {
     setAddForm({
@@ -73,9 +75,9 @@ export default function TravelListDetail() {
 
   async function handleAdd() {
     if (!canSubmit || !listId) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       let imageData = null;
 
@@ -123,7 +125,7 @@ export default function TravelListDetail() {
 
         setAddOpen(false);
         resetAddForm();
-        
+
         enqueueSnackbar(`✅ Destination "${addForm.name}" created successfully!`, { variant: "success" });
         console.log("Destination created successfully:", newDestination);
       } else {
@@ -137,9 +139,75 @@ export default function TravelListDetail() {
     }
   }
 
+  const handleCreateJournal = async (payload: any) => {
+    if (!listId) throw new Error("No list ID");
 
+    try {
+      // Upload photos first if any
+      const photoUrls = [];
+      if (payload.photos && payload.photos.length > 0) {
+        for (const photoFile of payload.photos) {
+          const formData = new FormData();
+          formData.append("image", photoFile);
+
+          const uploadResponse = await controller.post(`${endpoints.upload}/image`, formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          });
+
+          if (uploadResponse.success && uploadResponse.data?.url) {
+            photoUrls.push({
+              url: uploadResponse.data.url,
+              public_id: uploadResponse.data.public_id,
+            });
+          }
+        }
+      }
+
+      // Create journal entry
+      const journalPayload = {
+        title: payload.title,
+        content: payload.content,
+        destination: payload.destination,
+        listId: listId,
+        public: payload.public,
+        photos: photoUrls,
+      };
+
+      const response = await controller.post(endpoints.journals, journalPayload);
+
+      if (response && response.data) {
+        // Add to local state
+        setJournals(prev => [response.data, ...prev]);
+        enqueueSnackbar(`✅ Journal entry "${payload.title}" created successfully!`, { variant: "success" });
+      } else {
+        throw new Error("Failed to create journal entry");
+      }
+    } catch (error: any) {
+      console.error("Error creating journal:", error);
+      enqueueSnackbar(`❌ Failed to create journal: ${error.message || "Unknown error"}`, { variant: "error" });
+      throw error; // Re-throw so the dialog can handle it
+    }
+  };
 
   useEffect(() => {
+    const fetchJournals = async () => {
+      if (!listId) return;
+
+      setJournalsLoading(true);
+      try {
+        const response = await controller.getAll(`${endpoints.journals}/list/${listId}`);
+        if (response && response.data) {
+          setJournals(response.data);
+        }
+      } catch (error: any) {
+        console.error("Error fetching journals:", error);
+        enqueueSnackbar(`Failed to fetch journals: ${error.message}`, { variant: "error" });
+      } finally {
+        setJournalsLoading(false);
+      }
+    };
     const fetchListData = async () => {
       if (!listId) {
         setError("No list ID provided");
@@ -166,8 +234,8 @@ export default function TravelListDetail() {
     };
 
     fetchListData();
+    fetchJournals();
   }, [listId]);
-  console.log("List ID from URL:", listData);
 
   if (loading) {
     return (
@@ -253,7 +321,6 @@ export default function TravelListDetail() {
         onSearchUsers={async (q) => {
           const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
           if (response && response.data) {
-            // Map _id to id for compatibility
             return response.data.map((user: any) => ({
               ...user,
               id: user._id || user.id,
@@ -478,38 +545,61 @@ export default function TravelListDetail() {
         {/* Journals Tab */}
         <TabsContent value="journals">
           <div className="mb-4 flex justify-end">
-            <Button className="gap-2"><Plus className="h-4 w-4" /> Write Entry</Button>
+            <AddJournalDialog
+              destinations={listData?.destinations || []}
+              onCreate={handleCreateJournal}
+              triggerLabel="Write Entry"
+            />
           </div>
 
           <div className="space-y-4">
-            {listData?.journals?.map((j: any) => (
-              <Card key={j.id}>
-                <div className="flex flex-col gap-4 p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-2xl font-semibold">{j.title}</h3>
-                      <div className="text-sm text-muted-foreground"> {formatDate(j.createdAt)}</div>
+            {journalsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Loading journals...</p>
+              </div>
+            ) : journals.length > 0 ? (
+              journals.map((j: any) => (
+                <Card key={j.id || j._id}>
+                  <div className="flex flex-col gap-4 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-2xl font-semibold">{j.title}</h3>
+                        <div className="text-sm text-muted-foreground">{formatDate(j.createdAt)}</div>
+                      </div>
+                      <Badge variant="secondary" className={j.public ? "bg-emerald-600 text-white" : "bg-gray-700 text-white"}>
+                        {j.public ? "Public" : "Private"}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className={j.public ? "bg-emerald-600 text-white" : "bg-gray-700 text-white"}>
-                      {j.public ? "Public" : "Private"}
-                    </Badge>
-                  </div>
-                  <p className="max-w-4xl text-muted-foreground">{j.excerpt}</p>
-                  <div className="flex items-center gap-3">
-                    {j.photos?.slice(0, 2).map((_: any, i: string) => (
-                      <div key={i} className="h-16 w-16 rounded-md bg-muted" />
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                    {j.likes != null && <span>♡ {j.likes.length} likes</span>}
-                    {j.comments != null && <span>💬 {j.comments.length} comments</span>}
-                    <div className="ml-auto">
-                      <Button variant="outline" size="sm">Read More</Button>
+                    <p className="max-w-4xl text-muted-foreground">{j.content?.substring(0, 300)}{j.content?.length > 300 ? "..." : ""}</p>
+                    <div className="flex items-center gap-3">
+                      {j.photos?.map((photo: any, i: number) => (
+                        <div key={i} className="h-16 w-16 rounded-md bg-muted overflow-hidden">
+                          {photo.url ? (
+                            <img src={photo.url} alt={`Journal photo ${i + 1}`} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full bg-muted" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                      {j.likes != null && <span className="flex gap-2 items-center"><FaRegHeart /> {Array.isArray(j.likes) ? j.likes.length : j.likes} likes</span>}
+                      {j.comments != null && <span className="flex gap-2 items-center"><FaRegComment /> {Array.isArray(j.comments) ? j.comments.length : j.comments} comments</span>}
+                      <div className="ml-auto">
+                        <Link to={`/journals/${j.id || j._id}`}>
+                          <Button variant="outline" size="sm">Read More</Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No journal entries yet. Click "Write Entry" to get started!</p>
+              </div>
+            )}
           </div>
         </TabsContent>
 

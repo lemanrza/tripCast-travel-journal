@@ -179,7 +179,7 @@ exports.login = async (email, password) => {
         providerId: populatedUser.providerId,
         createdAt: populatedUser.createdAt,
         updatedAt: populatedUser.updatedAt,
-    }, "24h"); // Extended token expiration to 24 hours
+    }, "24h");
 
     const refreshToken = generateRefreshToken({
         id: populatedUser._id,

@@ -13,6 +13,7 @@ const errorHandler = require("./src/middleware/errorHandler.js")
 const userRouter = require("./src/routes/userRoute.js")
 const listRouter = require("./src/routes/listRoute.js")
 const destinationRouter = require("./src/routes/destinationRoute.js")
+const journalRouter = require("./src/routes/journalRoute.js")
 const googleRouter = require("./src/routes/googleRoute.js");
 const uploadRouter = require("./src/routes/uploadRoute.js");
 
@@ -37,6 +38,7 @@ app.use("/auth", userRouter);
 app.use("/auth", googleRouter);
 app.use("/lists", listRouter);
 app.use("/destinations", destinationRouter);
+app.use("/journals", journalRouter);
 app.use("/upload", uploadRouter);
 
 
