@@ -108,7 +108,6 @@ export default function CreateTravelList() {
       return;
     }
 
-    // Check if cover image is provided
     if (!uploadedImageUrl && (!values.coverImage || !(values.coverImage instanceof File))) {
       enqueueSnackbar("Cover image is required. Please select an image.", { variant: "error" });
       return;

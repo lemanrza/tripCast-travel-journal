@@ -11,7 +11,7 @@ function App() {
     <>
       <Provider store={store}>
         <RouterProvider router={router} />
-        <SnackbarProvider />
+        <SnackbarProvider anchorOrigin={{ vertical: "bottom", horizontal: "right" }} />
       </Provider>
 
     </>
