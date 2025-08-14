@@ -1,9 +1,10 @@
+import type { Destination } from "./DestinationType";
 import type { User } from "./userType";
 
 export type JournalDetail = {
   id: string;
   title: string;
-  destination: string;
+  destination: Destination;
   author: User;
   content: string;
   createdAt: string | Date;
