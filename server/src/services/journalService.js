@@ -88,7 +88,7 @@ exports.create = async (payload, userId) => {
             };
         }
 
-        // Verify destination exists and user has access
+        // Verify destination exists
         const destinationDoc = await DestinationModel.findById(destination);
         if (!destinationDoc) {
             return {
@@ -97,7 +97,7 @@ exports.create = async (payload, userId) => {
             };
         }
 
-        // Check if user has write access to the list
+        // Verify travel list exists
         const list = await TravelListModel.findById(destinationDoc.listId);
         if (!list) {
             return {
@@ -106,16 +106,7 @@ exports.create = async (payload, userId) => {
             };
         }
 
-        const hasWriteAccess = list.owner.toString() === userId.toString() ||
-            list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
-
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to create journal entries for this destination",
-            };
-        }
-
+        // Create journal
         const journalData = {
             title,
             content,
@@ -126,13 +117,19 @@ exports.create = async (payload, userId) => {
         };
 
         const journal = await JournalEntryModel.create(journalData);
+
+        // 🔹 Push journal ID into destination's journals array
+        destinationDoc.journals.push(journal._id);
+        await destinationDoc.save();
+
+        // Populate the newly created journal
         const populatedJournal = await JournalEntryModel.findById(journal._id)
             .populate("author", "fullName profileImage")
             .populate("destination", "name country");
 
         return {
             success: true,
-            message: "Journal entry created successfully",
+            message: "Journal entry created and linked to destination successfully",
             data: populatedJournal,
         };
     } catch (error) {
@@ -143,6 +140,7 @@ exports.create = async (payload, userId) => {
         };
     }
 };
+
 
 exports.update = async (journalId, payload, userId) => {
     try {
@@ -175,7 +173,7 @@ exports.update = async (journalId, payload, userId) => {
             updateData,
             { new: true, runValidators: true }
         ).populate("author", "fullName profileImage")
-         .populate("destination", "name country");
+            .populate("destination", "name country");
 
         return {
             success: true,

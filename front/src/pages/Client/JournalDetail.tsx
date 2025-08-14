@@ -5,24 +5,8 @@ import endpoints from "@/services/api";
 import JournalDetailDisplay from "@/components/JournalDetailDisplay";
 import { useSelector } from "react-redux";
 import type { User } from "@/types/userType";
-
-export type JournalComment = {
-  id: string;
-  author: { name: string; avatarUrl?: string };
-  content: string;
-  createdAt: string | Date;
-};
-
-export type JournalDetail = {
-  id: string;
-  title: string;
-  author: { name: string; avatarUrl?: string };
-  content: string; // notes/body
-  createdAt: string | Date;
-  photos: string[]; // image urls
-  likesCount?: number;
-  likedByMe?: boolean;
-};
+import { enqueueSnackbar } from "notistack";
+import type { JournalComment, JournalDetail } from "@/types/JournalType";
 
 
 export default function JournalDetailPage() {
@@ -59,15 +43,15 @@ export default function JournalDetailPage() {
             id: backendData._id || backendData.id,
             title: backendData.title,
             content: backendData.content,
+            destination: backendData.destination,
             createdAt: backendData.createdAt,
-            author: {
-              name: backendData.author?.fullName || backendData.author?.name || "Unknown Author",
-              avatarUrl: backendData.author?.profileImage?.url || backendData.author?.avatarUrl
-            },
+            author: backendData.author,
             photos: backendData.photos?.map((photo: any) =>
               typeof photo === 'string' ? photo : photo.url
             ) || [],
-            likesCount: backendData.likes?.length || 0,
+            likes: backendData.likes,
+            public: backendData.public,
+            comments: backendData.comments
           };
 
           console.log("Mapped journal data:", mappedJournal);
@@ -86,7 +70,7 @@ export default function JournalDetailPage() {
     const fetchComments = async () => {
       try {
         const response = await controller.getAll(`${endpoints.journals}/${id}/comments`);
-        
+
         if (response && response.data) {
           const mappedComments: JournalComment[] = response.data.map((comment: any) => ({
             id: comment._id || comment.id,
@@ -97,7 +81,7 @@ export default function JournalDetailPage() {
             content: comment.content,
             createdAt: comment.createdAt
           }));
-          
+
           setComments(mappedComments);
         }
       } catch (err: any) {
@@ -145,12 +129,10 @@ export default function JournalDetailPage() {
           createdAt: response.data.createdAt
         };
 
-        // Add the new comment to the beginning of the list (most recent first)
         setComments(prev => [newComment, ...prev]);
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
-      // You might want to show a toast notification here
+      enqueueSnackbar('Error adding comment:', { variant: 'error' });
     }
   };
 

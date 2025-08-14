@@ -1,4 +1,3 @@
-import type { JournalComment, JournalDetail } from '@/pages/Client/JournalDetail';
 import React from 'react'
 import { Button } from './ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Heart, MessageSquarePlus, Send, X } from 'lucide-react';
@@ -13,6 +12,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import timeAgo from '@/utils/timeAgo';
 import type { User } from '@/types/userType';
+import type { JournalComment, JournalDetail } from '@/types/JournalType';
 
 function JournalDetailDisplay({
     journal,
@@ -42,14 +42,12 @@ function JournalDetailDisplay({
         );
     }
 
-    const [liked, setLiked] = React.useState(!!journal.likedByMe);
-    const [likesCount, setLikesCount] = React.useState(journal.likesCount ?? 0);
+    // const [liked, setLiked] = React.useState(!!journal.likedByMe);
     const [open, setOpen] = React.useState(false);
     const [content, setContent] = React.useState("");
 
     const trackRef = React.useRef<HTMLDivElement>(null);
     const [activeIdx, setActiveIdx] = React.useState(0);
-
     React.useEffect(() => {
         const el = trackRef.current;
         if (!el) return;
@@ -60,25 +58,17 @@ function JournalDetailDisplay({
         el.addEventListener("scroll", h, { passive: true });
         return () => el.removeEventListener("scroll", h as any);
     }, [journal.photos?.length]);
-
+const likedByMe = journal.likes.includes(user?._id ?? "");
     const scrollBy = (dir: -1 | 1) => {
         const el = trackRef.current;
         if (!el) return;
         el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
     };
 
-    const handleLike = async () => {
-        const next = !liked;
-        setLiked(next);
-        setLikesCount((c) => c + (next ? 1 : -1));
-        try {
-            await onToggleLike?.(next);
-        } catch {
-            setLiked(!next);
-            setLikesCount((c) => c + (next ? -1 : 1));
-        }
-    };
-
+const handleLike = async () => {
+    if (!onToggleLike) return;
+    await onToggleLike(!likedByMe);
+};
     const resetForm = () => {
         setContent("");
     };
@@ -172,24 +162,24 @@ function JournalDetailDisplay({
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                            <AvatarImage src={journal.author.avatarUrl} />
-                            <AvatarFallback>{initials(journal.author.name)}</AvatarFallback>
+                            <AvatarImage src={journal.author.profileImage?.url} />
+                            <AvatarFallback>{initials(journal.author.fullName ?? "")}</AvatarFallback>
                         </Avatar>
                         <div>
                             <h1 className="text-2xl font-semibold leading-tight">{journal.title}</h1>
                             <p className="text-sm text-muted-foreground">
-                                by <span className="font-medium">{journal.author.name}</span> • {formatDate(journal.createdAt.toString())}
+                                by <span className="font-medium">{journal.author.fullName}</span> • {formatDate(journal.createdAt.toString())}
                             </p>
                         </div>
                     </div>
 
                     {/* Like */}
                     <div className="flex items-center gap-2">
-                        <Button variant={liked ? "default" : "outline"} size="sm" className="gap-2" onClick={handleLike} aria-pressed={liked}>
-                            <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-                            {liked ? "Liked" : "Like"}
+                        <Button variant={likedByMe ? "default" : "outline"} size="sm" className="gap-2" onClick={handleLike} aria-pressed={likedByMe}>
+                            <Heart className={`h-4 w-4 ${likedByMe ? "fill-current" : ""}`} />
+                            {likedByMe ? "Liked" : "Like"}
                         </Button>
-                        <span className="text-sm text-muted-foreground">{likesCount} {likesCount === 1 ? "like" : "likes"}</span>
+                        <span className="text-sm text-muted-foreground">{journal.likes.length} {journal.likes.length === 1 ? "like" : "likes"}</span>
                     </div>
                 </div>
 

@@ -22,6 +22,10 @@ const destinationSchema = new mongoose.Schema(
             ref: 'TravelList',
             required: true,
         },
+        journals: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Journal',
+        }],
     },
     { timestamps: true }
 );

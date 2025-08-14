@@ -32,19 +32,19 @@ type User = {
 
 type MembersProps = {
     collaborators: Member[];
-
-    onSearchUsers: (query: string) => Promise<User[]>; 
-    onInvite: (userId: string) => Promise<void>;  
+    onSearchUsers: (query: string) => Promise<User[]>;
+    onInvite: (userId: string) => Promise<void>;
+    isThisListMe: boolean;
 };
 
-const Members = ({ collaborators, onSearchUsers, onInvite }: MembersProps) => {
+const Members = ({ collaborators, onSearchUsers, onInvite, isThisListMe }: MembersProps) => {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<User[]>([]);
     const [invitingId, setInvitingId] = useState<string | null>(null);
-
+console.log(isThisListMe)
     useEffect(() => {
         if (!open) return;
         if (!q.trim()) {
@@ -83,8 +83,7 @@ const Members = ({ collaborators, onSearchUsers, onInvite }: MembersProps) => {
         <Card className="mt-6">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-2xl">Team Members</CardTitle>
-
-                <Dialog open={open} onOpenChange={setOpen}>
+                {isThisListMe && (<Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
                         <Button size="sm" className="gap-2">
                             <Plus className="h-4 w-4" /> Invite
@@ -152,7 +151,8 @@ const Members = ({ collaborators, onSearchUsers, onInvite }: MembersProps) => {
                             </DialogClose>
                         </DialogFooter>
                     </DialogContent>
-                </Dialog>
+                </Dialog>)}
+
 
             </CardHeader>
 

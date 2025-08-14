@@ -7,11 +7,11 @@ import { DropdownMenuSeparator } from "@radix-ui/react-dropdown-menu";
 import { useSelector } from "react-redux";
 
 export default function Header() {
-const user=useSelector((state:any)=>state.user)
-const logout=()=>{
-  localStorage.removeItem("token");
-  window.location.href = "/";
-}
+  const user = useSelector((state: any) => state.user)
+  const logout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/";
+  }
   const notifications = [
     {
       title: "New collaborator joined",
@@ -46,7 +46,11 @@ const logout=()=>{
           <div className="w-8 h-8">
             <img src="/src/assets/image.png" alt="TripCast icon" />
           </div>
-          <span className="font-bold text-xl">Trip<span className="text-blue-500">Cast</span></span>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent">
+              Trip<span className="font-black">Cast</span>
+            </span>
+          </h1>
         </div>
         <nav className="flex items-center space-x-7 text-md font-medium text-muted-foreground">
           <NavLink to="/dashboard" className="hover:text-blue-800 transition">Dashboard</NavLink>
