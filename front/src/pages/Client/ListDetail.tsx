@@ -28,7 +28,6 @@ export default function TravelListDetail() {
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const user = useSelector((state: any) => state.user);
-  console.log(user)
   const isThisListMe = listData?.owner?._id === user.id;
   const [addForm, setAddForm] = useState({
     imageFile: null as File | null,
@@ -44,6 +43,64 @@ export default function TravelListDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [journals, setJournals] = useState<JournalDetail[]>([]);
   const [journalsLoading, setJournalsLoading] = useState(false);
+  // EDIT state
+  const [editOpen, setEditOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editTarget, setEditTarget] = useState<Destination | null>(null);
+  const [editForm, setEditForm] = useState({
+    imageFile: null as File | null,
+    imageUrl: "",
+    originalPublicId: "" as string | null | undefined,
+    name: "",
+    country: "",
+    status: "" as "" | "wishlist" | "planned" | "completed",
+    datePlanned: "", // keep as YYYY-MM-DD (same format you use in create)
+    dateVisited: "",
+    notes: "",
+  });
+
+  function toYMD(d?: string | Date | null) {
+    if (!d) return "";
+    const dt = typeof d === "string" ? new Date(d) : d;
+    if (Number.isNaN(dt.getTime())) return "";
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function openEdit(dest: Destination) {
+    setEditTarget(dest);
+    setEditForm({
+      imageFile: null,
+      imageUrl: dest.image?.url || "",
+      originalPublicId: dest.image?.public_id,
+      name: dest.name || "",
+      country: dest.country || "",
+      status: (dest.status as any) || "",
+      datePlanned: toYMD(dest.datePlanned as any),
+      dateVisited: toYMD(dest.dateVisited as any),
+      notes: dest.notes || "",
+    });
+    setEditOpen(true);
+  }
+
+  function handleEditFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setEditForm((s) => ({ ...s, imageFile: file, imageUrl: url }));
+  }
+
+  function handleEditStatusChange(next: "wishlist" | "planned" | "completed") {
+    setEditForm((s) => {
+      if (next === "wishlist") return { ...s, status: next, datePlanned: "", dateVisited: "" };
+      if (next === "planned") return { ...s, status: next, dateVisited: "" };
+      return { ...s, status: next };
+    });
+  }
+
+
   function resetAddForm() {
     setAddForm({
       imageFile: null,
@@ -121,8 +178,6 @@ export default function TravelListDetail() {
         journal: journals,
       };
 
-      console.log("Creating destination:", destinationPayload);
-
       const response = await controller.post(endpoints.destinations, destinationPayload);
 
       if (response && response.data) {
@@ -136,7 +191,6 @@ export default function TravelListDetail() {
         resetAddForm();
 
         enqueueSnackbar(`✅ Destination "${addForm.name}" created successfully!`, { variant: "success" });
-        console.log("Destination created successfully:", newDestination);
       } else {
         throw new Error("Failed to create destination");
       }
@@ -190,7 +244,7 @@ export default function TravelListDetail() {
           if (!prev) return prev;
           const updatedDestinations = prev.destinations.map(dest => {
             const destId = typeof payload.destination === 'object' ? payload.destination.id : payload.destination;
-            if (dest.id === destId) {
+            if (dest._id === destId) {
               return {
                 ...dest,
                 journals: [
@@ -211,6 +265,20 @@ export default function TravelListDetail() {
       console.error("Error creating journal:", error);
       enqueueSnackbar(`❌ Failed to create journal: ${error.message || "Unknown error"}`, { variant: "error" });
       throw error;
+    }
+  };
+
+  const handleDeleteDestination = async (destId: string) => {
+    const response = await controller.deleteOne(endpoints.destinations, destId);
+    if (response && response.success) {
+      setListData((prev: any) => {
+        if (!prev) return prev;
+        const updatedDestinations = prev.destinations.filter((d: Destination) => d._id !== destId);
+        return { ...prev, destinations: updatedDestinations };
+      });
+      enqueueSnackbar("Destination deleted successfully", { variant: "success" });
+    } else {
+      enqueueSnackbar("Failed to delete destination", { variant: "error" });
     }
   };
 
@@ -244,7 +312,6 @@ export default function TravelListDetail() {
 
         if (response && response.data) {
           setListData(response.data);
-          console.log("Fetched list data:", response.data);
         } else {
           setError("Failed to fetch list data");
         }
@@ -285,10 +352,9 @@ export default function TravelListDetail() {
     );
   }
 
-  // before the return (inside your component)
   const canSee = (j: any) => {
     const authorId =
-      (j?.author && (j.author._id || j.author.id)) || j?.author; // supports object or string
+      (j?.author && (j.author._id || j.author.id)) || j?.author;
     return j?.public || String(authorId) === String(user.id);
   };
 
@@ -526,7 +592,7 @@ export default function TravelListDetail() {
           <Card>
             {listData?.destinations ? (
               listData.destinations.map((d: Destination) => (
-                <div key={d.id} className="grid grid-cols-2 md:grid-cols-[320px,1fr]">
+                <div key={d._id} className="grid grid-cols-2 md:grid-cols-[320px,1fr]">
                   {/* image placeholder */}
                   {d.image.url ? (
                     <img src={d.image.url} alt={d.name || 'Destination'} className="h-64 w-full object-cover" />
@@ -565,15 +631,26 @@ export default function TravelListDetail() {
                           ) : null}
                         </div>
                       </div>
-                      {
-                        isThisListMe && (
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" aria-label="Edit destination"><Pencil className="h-5 w-5" /></Button>
-                            <Button variant="ghost" size="icon" aria-label="Delete destination"><Trash2 className="h-5 w-5" /></Button>
-                          </div>
-                        )
-                      }
-
+                      {isThisListMe && (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => openEdit(d)}
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Edit destination"
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteDestination(d._id)}
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Delete destination"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -584,6 +661,202 @@ export default function TravelListDetail() {
               </div>
             )}
           </Card>
+          <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditTarget(null); }}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Destination</DialogTitle>
+                <DialogDescription>Update details for this destination.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5">
+                {/* Image */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Image</p>
+                  <div className="flex items-center gap-4">
+                    <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                      {editForm.imageUrl ? (
+                        <img src={editForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">No image</span>
+                      )}
+                    </div>
+                    <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                      <span>Upload new</span>
+                      <input type="file" accept="image/*" className="sr-only" onChange={handleEditFileChange} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Basics */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Name *</p>
+                    <input
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Country *</p>
+                    <input
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      value={editForm.country}
+                      onChange={(e) => setEditForm((s) => ({ ...s, country: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Status *</p>
+                    <select
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      value={editForm.status}
+                      onChange={(e) => handleEditStatusChange(e.target.value as any)}
+                    >
+                      <option value="" disabled>Select status</option>
+                      <option value="wishlist">Wishlist</option>
+                      <option value="planned">Planned</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dates (conditional) */}
+                {editForm.status === "planned" && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Planned Date *</p>
+                      <input
+                        type="date"
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={editForm.datePlanned}
+                        onChange={(e) => setEditForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {editForm.status === "completed" && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Planned Date *</p>
+                      <input
+                        type="date"
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={editForm.datePlanned}
+                        onChange={(e) => setEditForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Visited Date *</p>
+                      <input
+                        type="date"
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={editForm.dateVisited}
+                        onChange={(e) => setEditForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Notes</p>
+                  <textarea
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    rows={4}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm((s) => ({ ...s, notes: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => { setEditOpen(false); setEditTarget(null); }} disabled={savingEdit}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  disabled={savingEdit || !editTarget || !editForm.name.trim() || !editForm.country.trim() || !editForm.status}
+                  onClick={async () => {
+                    if (!editTarget) return;
+
+                    setSavingEdit(true);
+                    try {
+                      let newImageData: { url: string; public_id: string } | null = null;
+                      if (editForm.imageFile) {
+                        const fd = new FormData();
+                        fd.append("image", editForm.imageFile);
+                        const uploadRes = await controller.post(`${endpoints.upload}/image`, fd, {
+                          headers: { "Content-Type": "multipart/form-data" },
+                        });
+                        if (!uploadRes?.success || !uploadRes.data?.url) {
+                          throw new Error("Image upload failed");
+                        }
+                        newImageData = {
+                          url: uploadRes.data.url,
+                          public_id: uploadRes.data.public_id,
+                        };
+                      }
+
+                      const patch: Partial<Destination> = {
+                        name: editForm.name.trim(),
+                        country: editForm.country.trim(),
+                        status: editForm.status as any,
+                        notes: editForm.notes?.trim() ?? "",
+                        datePlanned:
+                          editForm.status === "planned" || editForm.status === "completed"
+                            ? (editForm.datePlanned || undefined)
+                            : undefined,
+                        dateVisited:
+                          editForm.status === "completed"
+                            ? (editForm.dateVisited || undefined)
+                            : undefined,
+                        ...(newImageData ? { image: newImageData } : {}),
+                      };
+
+                      const resp = await controller.update(endpoints.destinations, editTarget._id, patch);
+
+                      if (!resp || !resp.data) {
+                        throw new Error(resp?.message || "Failed to update destination");
+                      }
+
+                      const updated = resp.data;
+                      setListData((prev: any) => {
+                        if (!prev) return prev;
+                        const updatedDestinations = (prev.destinations || []).map((d: Destination) =>
+                          d._id === editTarget._id ? { ...d, ...updated } : d
+                        );
+                        return { ...prev, destinations: updatedDestinations };
+                      });
+
+                      if (newImageData && editForm.originalPublicId) {
+                        try {
+                          await controller.post(`${endpoints.upload}/image/delete`, {
+                            public_id: editForm.originalPublicId,
+                          });
+                        } catch (delErr) {
+                          console.warn("Old image delete failed (non-fatal):", delErr);
+                        }
+                      }
+
+                      enqueueSnackbar(resp.message || "Destination updated successfully", { variant: "success" });
+                      setEditOpen(false);
+                      setEditTarget(null);
+                    } catch (err: any) {
+                      console.error("Error updating destination:", err);
+                      enqueueSnackbar(err?.message || "Failed to update destination", { variant: "error" });
+                    } finally {
+                      setSavingEdit(false);
+                    }
+                  }}
+                >
+                  {savingEdit ? "Saving..." : "Save changes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
         </TabsContent>
 
