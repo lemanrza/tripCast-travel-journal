@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Users2, MapPin, Pencil, Trash2, MessageSquare, Share2, Settings, Plus, Star, CalendarDays } from "lucide-react";
+import { CheckCircle2, Users2, MapPin, Pencil, Trash2, MessageSquare, Share2, Settings, Plus, CalendarDays } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import StatusPill from "@/components/StatusPill";
 import formatDate from "@/utils/formatDate";
@@ -15,14 +15,21 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle, DialogTrigger, Di
 import { enqueueSnackbar } from "notistack";
 import AddJournalDialog from "@/components/ListDetail/AddJournal";
 import { FaRegComment, FaRegHeart } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import type { List } from "@/types/ListType";
+import type { Destination } from "@/types/DestinationType";
+import type { JournalDetail } from "@/types/JournalType";
 
 
 export default function TravelListDetail() {
   const { id: listId } = useParams();
-  const [listData, setListData] = useState<any>(null);
+  const [listData, setListData] = useState<List | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const user = useSelector((state: any) => state.user);
+  console.log(user)
+  const isThisListMe = listData?.owner?._id === user.id;
   const [addForm, setAddForm] = useState({
     imageFile: null as File | null,
     imageUrl: "",
@@ -32,9 +39,10 @@ export default function TravelListDetail() {
     datePlanned: "",
     dateVisited: "",
     notes: "",
+    journals: [] as JournalDetail[],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [journals, setJournals] = useState<any[]>([]);
+  const [journals, setJournals] = useState<JournalDetail[]>([]);
   const [journalsLoading, setJournalsLoading] = useState(false);
 
   function resetAddForm() {
@@ -47,6 +55,7 @@ export default function TravelListDetail() {
       datePlanned: "",
       dateVisited: "",
       notes: "",
+      journals: []
     });
   }
 
@@ -110,6 +119,7 @@ export default function TravelListDetail() {
         notes: addForm.notes.trim() || null,
         image: imageData,
         listId: listId,
+        journal: journals,
       };
 
       console.log("Creating destination:", destinationPayload);
@@ -143,7 +153,6 @@ export default function TravelListDetail() {
     if (!listId) throw new Error("No list ID");
 
     try {
-      // Upload photos first if any
       const photoUrls = [];
       if (payload.photos && payload.photos.length > 0) {
         for (const photoFile of payload.photos) {
@@ -165,21 +174,36 @@ export default function TravelListDetail() {
         }
       }
 
-      // Create journal entry
       const journalPayload = {
         title: payload.title,
         content: payload.content,
         destination: payload.destination,
         listId: listId,
         public: payload.public,
-        photos: photoUrls,
+        photos: photoUrls
       };
 
       const response = await controller.post(endpoints.journals, journalPayload);
 
       if (response && response.data) {
-        // Add to local state
         setJournals(prev => [response.data, ...prev]);
+        setListData(prev => {
+          if (!prev) return prev;
+          const updatedDestinations = prev.destinations.map(dest => {
+            const destId = typeof payload.destination === 'object' ? payload.destination.id : payload.destination;
+            if (dest.id === destId) {
+              return {
+                ...dest,
+                journals: [
+                  ...(Array.isArray(dest.journals) ? dest.journals : []),
+                  response.data
+                ]
+              };
+            }
+            return dest;
+          });
+          return { ...prev, destinations: updatedDestinations };
+        });
         enqueueSnackbar(`✅ Journal entry "${payload.title}" created successfully!`, { variant: "success" });
       } else {
         throw new Error("Failed to create journal entry");
@@ -187,7 +211,7 @@ export default function TravelListDetail() {
     } catch (error: any) {
       console.error("Error creating journal:", error);
       enqueueSnackbar(`❌ Failed to create journal: ${error.message || "Unknown error"}`, { variant: "error" });
-      throw error; // Re-throw so the dialog can handle it
+      throw error;
     }
   };
 
@@ -232,7 +256,6 @@ export default function TravelListDetail() {
         setLoading(false);
       }
     };
-
     fetchListData();
     fetchJournals();
   }, [listId]);
@@ -272,6 +295,7 @@ export default function TravelListDetail() {
   const statDestinations = listData?.destinations?.length || 0;
   const statCompleted = listData?.destinations?.filter((d: any) => d.status === "completed")?.length || 0;
   const statMembers = listData?.collaborators?.length || 0;
+  const statJournals = listData?.destinations?.reduce((sum, d) => sum + (Array.isArray(d.journals) ? d.journals.length : 0), 0) || 0;
 
   return (
     <div className="mx-auto max-w-8xl px-4 pb-16">
@@ -303,7 +327,9 @@ export default function TravelListDetail() {
           <div className="mt-4 flex gap-2 self-end">
             <Button variant="secondary" className="bg-white/90 text-gray-900"><MessageSquare className="mr-2 h-4 w-4" /> Chat</Button>
             <Button variant="secondary" className="bg-white/90 text-gray-900"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-            <Button variant="secondary" className="bg-white/90 text-gray-900"><Settings className="mr-2 h-4 w-4" /> Settings</Button>
+            {isThisListMe && (
+              <Button variant="secondary" className="bg-white/90 text-gray-900"><Settings className="mr-2 h-4 w-4" /> Settings</Button>
+            )}
           </div>
         </div>
       </div>
@@ -313,11 +339,16 @@ export default function TravelListDetail() {
         <StatCard icon={<MapPin className="h-5 w-5 text-blue-500" />} value={statDestinations} label="Destinations" />
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} value={statCompleted} label="Completed" />
         <StatCard icon={<Users2 className="h-5 w-5 text-purple-600" />} value={statMembers} label="Members" />
-        {/* <StatCard icon={<Pencil className="h-5 w-5 text-orange-500" />} value={statJournals} label="Journal Entries" /> */}
+        <StatCard icon={<Pencil className="h-5 w-5 text-orange-500" />} value={statJournals} label="Journal Entries" />
       </div>
 
       <Members
-        collaborators={listData?.collaborators || []}
+        isThisListMe={isThisListMe}
+        collaborators={(listData?.collaborators || []).map((user: any) => ({
+          ...user,
+          id: user._id || user.id,
+          avatarUrl: user.profileImage?.url
+        }))}
         onSearchUsers={async (q) => {
           const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
           if (response && response.data) {
@@ -349,146 +380,146 @@ export default function TravelListDetail() {
 
         {/* Destinations Tab */}
         <TabsContent value="destinations">
-          <div className="mb-4 flex justify-end">
-            <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
-              <DialogTrigger asChild>
-                <Button variant="default" className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Destination
-                </Button>
-              </DialogTrigger>
+          {isThisListMe && (
+            <div className="mb-4 flex justify-end">
+              <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
+                <DialogTrigger asChild>
+                  <Button variant="default" className="gap-2">
+                    <Plus className="h-4 w-4" /> Add Destination
+                  </Button>
+                </DialogTrigger>
 
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add Destination</DialogTitle>
-                  <DialogDescription>Fill in the details for the new destination.</DialogDescription>
-                </DialogHeader>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add Destination</DialogTitle>
+                    <DialogDescription>Fill in the details for the new destination.</DialogDescription>
+                  </DialogHeader>
 
-                <div className="space-y-5">
-                  {/* Image */}
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Image</p>
-                    <div className="flex items-center gap-4">
-                      <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
-                        {addForm.imageUrl ? (
-                          <img src={addForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-muted-foreground text-xs">No image</span>
-                        )}
+                  <div className="space-y-5">
+                    {/* Image */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Image</p>
+                      <div className="flex items-center gap-4">
+                        <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                          {addForm.imageUrl ? (
+                            <img src={addForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-muted-foreground text-xs">No image</span>
+                          )}
+                        </div>
+                        <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                          <span>Upload</span>
+                          <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+                        </label>
                       </div>
-                      <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
-                        <span>Upload</span>
-                        <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Basics */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Name *</p>
-                      <input
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        placeholder="e.g., Paris"
-                        value={addForm.name}
-                        onChange={(e) => setAddForm((s) => ({ ...s, name: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Country *</p>
-                      <input
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        placeholder="e.g., France"
-                        value={addForm.country}
-                        onChange={(e) => setAddForm((s) => ({ ...s, country: e.target.value }))}
-                      />
                     </div>
 
-                    {/* Status */}
-                    <div className="space-y-2 sm:col-span-2">
-                      <p className="text-xs text-muted-foreground">Status *</p>
-                      <select
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        value={addForm.status}
-                        onChange={(e) => handleStatusChange(e.target.value as any)}
-                      >
-                        <option value="" disabled>Select status</option>
-                        <option value="wishlist">Wishlist</option>
-                        <option value="planned">Planned</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Dates (conditional) */}
-                  {addForm.status === "planned" && (
+                    {/* Basics */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">Planned Date *</p>
+                        <p className="text-xs text-muted-foreground">Name *</p>
                         <input
-                          type="date"
                           className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                          value={addForm.datePlanned}
-                          onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {addForm.status === "completed" && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">Planned Date *</p>
-                        <input
-                          type="date"
-                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                          value={addForm.datePlanned}
-                          onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                          placeholder="e.g., Paris"
+                          value={addForm.name}
+                          onChange={(e) => setAddForm((s) => ({ ...s, name: e.target.value }))}
                         />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">Visited Date *</p>
+                        <p className="text-xs text-muted-foreground">Country *</p>
                         <input
-                          type="date"
                           className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                          value={addForm.dateVisited}
-                          onChange={(e) => setAddForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                          placeholder="e.g., France"
+                          value={addForm.country}
+                          onChange={(e) => setAddForm((s) => ({ ...s, country: e.target.value }))}
                         />
                       </div>
-                    </div>
-                  )}
 
-                  {/* Notes */}
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Notes</p>
-                    <textarea
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      rows={4}
-                      placeholder="Anything important about this destination..."
-                      value={addForm.notes}
-                      onChange={(e) => setAddForm((s) => ({ ...s, notes: e.target.value }))}
-                    />
+                      {/* Status */}
+                      <div className="space-y-2 sm:col-span-2">
+                        <p className="text-xs text-muted-foreground">Status *</p>
+                        <select
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                          value={addForm.status}
+                          onChange={(e) => handleStatusChange(e.target.value as any)}
+                        >
+                          <option value="" disabled>Select status</option>
+                          <option value="wishlist">Wishlist</option>
+                          <option value="planned">Planned</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Dates (conditional) */}
+                    {addForm.status === "planned" && (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Planned Date *</p>
+                          <input
+                            type="date"
+                            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            value={addForm.datePlanned}
+                            onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {addForm.status === "completed" && (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Planned Date *</p>
+                          <input
+                            type="date"
+                            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            value={addForm.datePlanned}
+                            onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Visited Date *</p>
+                          <input
+                            type="date"
+                            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            value={addForm.dateVisited}
+                            onChange={(e) => setAddForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Notes</p>
+                      <textarea
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        rows={4}
+                        placeholder="Anything important about this destination..."
+                        value={addForm.notes}
+                        onChange={(e) => setAddForm((s) => ({ ...s, notes: e.target.value }))}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <DialogFooter>
-                  <Button variant="secondary" onClick={() => { setAddOpen(false); resetAddForm(); }} disabled={isSubmitting}>
-                    Cancel
-                  </Button>
-                  <Button variant="default" onClick={handleAdd} disabled={!canSubmit || isSubmitting}>
-                    {isSubmitting ? "Adding..." : "Add"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-
+                  <DialogFooter>
+                    <Button variant="secondary" onClick={() => { setAddOpen(false); resetAddForm(); }} disabled={isSubmitting}>
+                      Cancel
+                    </Button>
+                    <Button variant="default" onClick={handleAdd} disabled={!canSubmit || isSubmitting}>
+                      {isSubmitting ? "Adding..." : "Add"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
           <Card>
-            {listData?.destinations?.length > 0 ? (
-              listData.destinations.map((d: any) => (
-                <div key={d.id || d._id} className="grid grid-cols-2 md:grid-cols-[320px,1fr]">
+            {listData?.destinations ? (
+              listData.destinations.map((d: Destination) => (
+                <div key={d.id} className="grid grid-cols-2 md:grid-cols-[320px,1fr]">
                   {/* image placeholder */}
-                  {d.image?.url ? (
+                  {d.image.url ? (
                     <img src={d.image.url} alt={d.name || 'Destination'} className="h-64 w-full object-cover" />
                   ) : (
                     <div className="h-64 w-full bg-muted flex items-center justify-center">
@@ -504,14 +535,14 @@ export default function TravelListDetail() {
                         <div className="mt-2">
                           <StatusPill status={d.status} />
                         </div>
-                        {d.rating && (
+                        {/* {d.rating && (
                           <div className="mt-3 flex items-center gap-1">
                             {new Array(5).fill(null).map((_, i) => (
                               <Star key={i} className={`h-4 w-4 ${i < (d.rating || 0) ? "fill-current" : "opacity-30"}`} />
                             ))}
                             <span className="ml-1 text-sm text-muted-foreground">({d.rating}/5)</span>
                           </div>
-                        )}
+                        )} */}
                         <p className="mt-3 text-sm text-muted-foreground max-w-3xl">{d.notes}</p>
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           {d.datePlanned && (
@@ -520,8 +551,8 @@ export default function TravelListDetail() {
                           {d.dateVisited && (
                             <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Visited: {formatDate(d.dateVisited)}</span>
                           )}
-                          {d.journalCount ? (
-                            <span className="inline-flex items-center gap-2"><Pencil className="h-4 w-4" /> {d.journalCount} journal entries</span>
+                          {d.journals.length > 0 ? (
+                            <span className="inline-flex items-center gap-2"><Pencil className="h-4 w-4" /> {d.journals.length} journal entries</span>
                           ) : null}
                         </div>
                       </div>
@@ -540,6 +571,7 @@ export default function TravelListDetail() {
               </div>
             )}
           </Card>
+
         </TabsContent>
 
         {/* Journals Tab */}
@@ -564,8 +596,12 @@ export default function TravelListDetail() {
                   <div className="flex flex-col gap-4 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
+                        <div className="text-sm text-muted-foreground">Destination: {j.destination.name}</div>
+
                         <h3 className="text-2xl font-semibold">{j.title}</h3>
-                        <div className="text-sm text-muted-foreground">{formatDate(j.createdAt)}</div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm text-muted-foreground">{formatDate(j.createdAt)}</div>
+                        </div>
                       </div>
                       <Badge variant="secondary" className={j.public ? "bg-emerald-600 text-white" : "bg-gray-700 text-white"}>
                         {j.public ? "Public" : "Private"}

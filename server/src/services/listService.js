@@ -2,7 +2,6 @@ const TravelListModel = require("../models/travelListModel.js");
 const UserModel = require("../models/userModel.js");
 
 exports.getAll = async () => {
-    // Get all public lists or user's own lists
     return await TravelListModel.find()
         .populate("owner", "fullName email profileImage")
         .populate("collaborators", "fullName email profileImage")
@@ -19,15 +18,6 @@ exports.getOne = async (listId, userId) => {
     if (!list) {
         throw new Error("Travel list not found");
     }
-
-    const hasAccess = list.isPublic || 
-                     list.owner._id.toString() === userId || 
-                     list.collaborators.some(collaborator => collaborator._id.toString() === userId);
-
-    if (!hasAccess) {
-        throw new Error("You don't have access to this travel list");
-    }
-
     return list;
 };
 
@@ -165,7 +155,6 @@ exports.delete = async (listId, userId) => {
             };
         }
 
-        // Check if user is the owner
         if (list.owner.toString() !== userId) {
             return {
                 success: false,
@@ -173,12 +162,10 @@ exports.delete = async (listId, userId) => {
             };
         }
 
-        // Remove list from user's lists array
         await UserModel.findByIdAndUpdate(userId, {
             $pull: { lists: listId }
         });
 
-        // Remove list from collaborators' lists
         if (list.collaborators.length > 0) {
             await UserModel.updateMany(
                 { _id: { $in: list.collaborators } },
