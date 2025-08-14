@@ -136,31 +136,21 @@ exports.update = async (destinationId, payload, userId) => {
             .populate("listId", "owner collaborators");
 
         if (!destination) {
-            return {
-                success: false,
-                message: "Destination not found",
-            };
-        }
-
-        const list = destination.listId;
-        const hasWriteAccess = list.owner.toString() === userId.toString()
-
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to update this destination",
-            };
+            return { success: false, message: "Destination not found" };
         }
 
         const { name, country, datePlanned, dateVisited, status, notes, image } = payload;
-
         const updateData = {};
-        if (name) updateData.name = name;
-        if (country) updateData.country = country;
-        if (datePlanned) updateData.datePlanned = datePlanned;
+
+        if (name !== undefined) updateData.name = name;
+        if (country !== undefined) updateData.country = country;
+
+        if (datePlanned !== undefined) updateData.datePlanned = datePlanned;
         if (dateVisited !== undefined) updateData.dateVisited = dateVisited;
-        if (status) updateData.status = status;
+
+        if (status !== undefined) updateData.status = status;
         if (notes !== undefined) updateData.notes = notes;
+
         if (image !== undefined) updateData.image = image;
 
         const updatedDestination = await DestinationModel.findByIdAndUpdate(
@@ -175,16 +165,13 @@ exports.update = async (destinationId, payload, userId) => {
             message: "Destination updated successfully!",
         };
     } catch (error) {
-        let message = "Internal server error";
-        if (error && typeof error === "object" && "message" in error) {
-            message = error.message;
-        }
         return {
             success: false,
-            message: message,
+            message: error?.message || "Internal server error",
         };
     }
 };
+
 
 exports.delete = async (destinationId, userId) => {
     try {
@@ -199,17 +186,8 @@ exports.delete = async (destinationId, userId) => {
         }
 
         const list = destination.listId;
-        const hasWriteAccess = list.owner.toString() === userId.toString() ||
-            list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
 
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to delete this destination",
-            };
-        }
-
-        await TravelListModel.findByIdAndUpdate(destination.listId._id, {
+        await TravelListModel.findByIdAndUpdate(list._id, {
             $pull: { destinations: destinationId }
         });
 
@@ -369,7 +347,7 @@ exports.clearImage = async (destinationId, userId) => {
                 message: "You don't have permission to remove the image from this destination",
             };
         }
-        
+
         destination.image = null;
         await destination.save();
 

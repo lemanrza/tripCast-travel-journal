@@ -30,9 +30,9 @@ exports.getDestinationById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user._id;
-        
+
         const destination = await getOne(id, userId);
-        
+
         if (!destination) {
             res.status(404).json({
                 message: "Destination not found!",
@@ -60,7 +60,7 @@ exports.getDestinationsByListId = async (req, res, next) => {
     try {
         const { listId } = req.params;
         const userId = req.user._id;
-        
+
         const destinations = await getByListId(listId, userId);
 
         res.status(200).json({
@@ -157,9 +157,11 @@ exports.updateDestination = async (req, res, next) => {
         }
 
         res.status(200).json({
+            success: true,
             message: response.message,
             data: formatMongoData(response.data),
         });
+
     } catch (error) {
         next(error);
     }
@@ -181,6 +183,7 @@ exports.deleteDestination = async (req, res, next) => {
         }
 
         res.status(200).json({
+            success: true,
             message: response.message,
             data: null,
         });
@@ -205,9 +208,9 @@ exports.updateDestinationStatus = async (req, res, next) => {
         const response = await updateStatus(id, status, userId);
 
         if (!response.success) {
-            const statusCode = response.message === "Destination not found" ? 404 : 
-                              response.message.includes("Invalid status") ? 400 : 403;
-            
+            const statusCode = response.message === "Destination not found" ? 404 :
+                response.message.includes("Invalid status") ? 400 : 403;
+
             return res.status(statusCode).json({
                 message: response.message,
                 data: null,
