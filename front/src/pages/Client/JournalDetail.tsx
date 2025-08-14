@@ -105,23 +105,27 @@ export default function JournalDetailPage() {
         setJournal((prev) => {
           if (!prev) return prev;
 
-          const updatedLikes = [...prev.likes];
+          const updatedLikes: any[] = Array.isArray(prev.likes) ? [...(prev.likes as any[])] : [];
+
+          const isThisUser = (l: any) =>
+            String(l?.userId?._id ?? l?.userId ?? l) === String(reduxUser.id);
 
           if (isLiked) {
-            updatedLikes.push({ userId: reduxUser.id, createdAt: new Date().toISOString() });
+            if (!updatedLikes.some(isThisUser)) {
+              updatedLikes.push({ userId: reduxUser.id, createdAt: new Date().toISOString() });
+            }
           } else {
-            const idx = updatedLikes.findIndex((l: any) =>
-              String(l.userId?._id || l.userId) === String(reduxUser.id)
-            );
+            const idx = updatedLikes.findIndex(isThisUser);
             if (idx > -1) updatedLikes.splice(idx, 1);
           }
 
-          return { ...prev, likes: updatedLikes };
+          return { ...(prev as any), likes: updatedLikes } as JournalDetail;
         });
       }
     } catch (error) {
       console.error("Error toggling like:", error);
     }
+
   };
 
   const handleAddComment = async (text: string) => {
