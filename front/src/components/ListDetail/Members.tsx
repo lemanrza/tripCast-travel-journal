@@ -44,7 +44,7 @@ const Members = ({ collaborators, onSearchUsers, onInvite, isThisListMe }: Membe
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<User[]>([]);
     const [invitingId, setInvitingId] = useState<string | null>(null);
-console.log(isThisListMe)
+    console.log(isThisListMe)
     useEffect(() => {
         if (!open) return;
         if (!q.trim()) {
@@ -83,7 +83,7 @@ console.log(isThisListMe)
         <Card className="mt-6">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-2xl">Team Members</CardTitle>
-                {isThisListMe && (<Dialog open={open} onOpenChange={setOpen}>
+                <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
                         <Button size="sm" className="gap-2">
                             <Plus className="h-4 w-4" /> Invite
@@ -151,7 +151,7 @@ console.log(isThisListMe)
                             </DialogClose>
                         </DialogFooter>
                     </DialogContent>
-                </Dialog>)}
+                </Dialog>
 
 
             </CardHeader>

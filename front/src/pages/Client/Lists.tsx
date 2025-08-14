@@ -90,6 +90,7 @@ const Lists = () => {
                 <TravelListCard
                   key={list.id}
                   id={list.id}
+                  user={list.owner}
                   title={list.title}
                   desc={list.description}
                   completed={list.destinations.filter(d => d.status === 'completed').length}

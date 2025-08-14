@@ -25,7 +25,7 @@ function JournalDetailDisplay({
     journal?: JournalDetail;
     comments?: JournalComment[];
     onBack?: () => void;
-    onToggleLike?: (liked: boolean) => Promise<void> | void;
+    onToggleLike?: () => Promise<void> | void;
     onAddComment?: (text: string) => Promise<void> | void;
     user: User | null
 }) {
@@ -42,7 +42,7 @@ function JournalDetailDisplay({
         );
     }
 
-    // const [liked, setLiked] = React.useState(!!journal.likedByMe);
+
     const [open, setOpen] = React.useState(false);
     const [content, setContent] = React.useState("");
 
@@ -58,24 +58,28 @@ function JournalDetailDisplay({
         el.addEventListener("scroll", h, { passive: true });
         return () => el.removeEventListener("scroll", h as any);
     }, [journal.photos?.length]);
-const likedByMe = journal.likes.includes(user?._id ?? "");
     const scrollBy = (dir: -1 | 1) => {
         const el = trackRef.current;
         if (!el) return;
         el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
     };
 
-const handleLike = async () => {
-    if (!onToggleLike) return;
-    await onToggleLike(!likedByMe);
-};
+    // Fix: likedByMe must be defined before use
+    const likedByMe = Array.isArray(journal.likes) && user?._id
+        ? journal.likes.some((l: any) => String(l.userId?._id || l.userId) === String(user._id))
+        : false;
+
+    const handleLike = async () => {
+        if (!onToggleLike) return;
+        await onToggleLike();
+    };
     const resetForm = () => {
         setContent("");
     };
 
     const handleAdd = async () => {
         if (!content.trim()) return;
-        
+
         try {
             await onAddComment?.(content.trim());
             setOpen(false);
@@ -91,31 +95,67 @@ const handleLike = async () => {
         <div className="min-h-screen">
             {/* Top media slider */}
             <div className="relative">
-                <div
-                    ref={trackRef}
-                    className="flex w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden no-scrollbar"
-                >
-                    {(journal.photos?.length ? journal.photos : [undefined]).map((src, i) => (
-                        <div key={i} className="relative h-150 w-full object-cover flex-none snap-center">
-                            {src ? (
-                                <img
-                                    src={src}
-                                    alt={`photo-${i + 1}`}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-muted">
-                                    <span className="text-muted-foreground">No image</span>
-                                </div>
-                            )}
-
-                            {/* gradient for readability */}
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+                {journal.photos && journal.photos.length > 0 ? (
+                    <>
+                        {/* Slider track */}
+                        <div
+                            ref={trackRef}
+                            className="flex w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden no-scrollbar"
+                        >
+                            {journal.photos.map((photo, i) => {
+                                // Support both string and object with url
+                                const src = typeof photo === 'string' ? photo : photo?.url;
+                                return (
+                                    <div key={i} className="relative h-150 w-full object-cover flex-none snap-center">
+                                        <img
+                                            src={src}
+                                            alt={`photo-${i + 1}`}
+                                            className="h-full w-full object-cover"
+                                        />
+                                        {/* gradient for readability */}
+                                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+                                    </div>
+                                );
+                            })}
                         </div>
-                    ))}
-                </div>
 
-                {/* Back button (overlay) */}
+                        {/* Slider controls */}
+                        {journal.photos.length > 1 && (
+                            <>
+                                <div className="absolute left-3 top-1/2 z-10 -translate-y-1/2">
+                                    <Button variant="secondary" size="icon" className="bg-background/70 backdrop-blur" onClick={() => scrollBy(-1)}>
+                                        <ChevronLeft className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                                <div className="absolute right-3 top-1/2 z-10 -translate-y-1/2">
+                                    <Button variant="secondary" size="icon" className="bg-background/70 backdrop-blur" onClick={() => scrollBy(1)}>
+                                        <ChevronRight className="h-5 w-5" />
+                                    </Button>
+                                </div>
+
+                                {/* Dots */}
+                                <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1">
+                                    <div className="flex items-center gap-1.5">
+                                        {journal.photos.map((_, i) => (
+                                            <span
+                                                key={i}
+                                                className={`h-1.5 w-1.5 rounded-full ${i === activeIdx ? "bg-white" : "bg-white/60"}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex h-60 w-full items-center justify-center bg-muted">
+                        <span className="text-muted-foreground">
+                            No image available for this journal entry
+                        </span>
+                    </div>
+                )}
+
+                {/* Back button (always visible) */}
                 <div className="pointer-events-none absolute left-4 top-4 z-10">
                     <Button
                         className="pointer-events-auto gap-2 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50"
@@ -126,35 +166,8 @@ const handleLike = async () => {
                         <ArrowLeft className="h-4 w-4" /> Back
                     </Button>
                 </div>
-
-                {/* Slider controls */}
-                {journal.photos && journal.photos.length > 1 && (
-                    <>
-                        <div className="absolute left-3 top-1/2 z-10 -translate-y-1/2">
-                            <Button variant="secondary" size="icon" className="bg-background/70 backdrop-blur" onClick={() => scrollBy(-1)}>
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-                        </div>
-                        <div className="absolute right-3 top-1/2 z-10 -translate-y-1/2">
-                            <Button variant="secondary" size="icon" className="bg-background/70 backdrop-blur" onClick={() => scrollBy(1)}>
-                                <ChevronRight className="h-5 w-5" />
-                            </Button>
-                        </div>
-
-                        {/* Dots */}
-                        <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1">
-                            <div className="flex items-center gap-1.5">
-                                {journal.photos.map((_, i) => (
-                                    <span
-                                        key={i}
-                                        className={`h-1.5 w-1.5 rounded-full ${i === activeIdx ? "bg-white" : "bg-white/60"}`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </>
-                )}
             </div>
+
 
             {/* Content */}
             <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-8">
@@ -179,7 +192,9 @@ const handleLike = async () => {
                             <Heart className={`h-4 w-4 ${likedByMe ? "fill-current" : ""}`} />
                             {likedByMe ? "Liked" : "Like"}
                         </Button>
-                        <span className="text-sm text-muted-foreground">{journal.likes.length} {journal.likes.length === 1 ? "like" : "likes"}</span>
+                        <span className="text-sm text-muted-foreground">
+                            {journal.likes.length} {journal.likes.length === 1 ? "like" : "likes"}
+                        </span>
                     </div>
                 </div>
 

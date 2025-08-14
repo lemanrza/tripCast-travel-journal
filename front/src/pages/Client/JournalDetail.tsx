@@ -86,7 +86,6 @@ export default function JournalDetailPage() {
         }
       } catch (err: any) {
         console.error("Error fetching comments:", err);
-        // Don't set error state for comments, just log it
       }
     };
 
@@ -100,13 +99,28 @@ export default function JournalDetailPage() {
 
     try {
       const response = await controller.post(`${endpoints.journals}/${journal.id}/like`, {});
+      if (response && response.data) {
+        const { isLiked } = response.data;
 
-      if (response.ok) {
-        const data = await response.json();
-        setJournal(data.data);
+        setJournal((prev) => {
+          if (!prev) return prev;
+
+          const updatedLikes = [...prev.likes];
+
+          if (isLiked) {
+            updatedLikes.push({ userId: reduxUser.id, createdAt: new Date().toISOString() });
+          } else {
+            const idx = updatedLikes.findIndex((l: any) =>
+              String(l.userId?._id || l.userId) === String(reduxUser.id)
+            );
+            if (idx > -1) updatedLikes.splice(idx, 1);
+          }
+
+          return { ...prev, likes: updatedLikes };
+        });
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
+      console.error("Error toggling like:", error);
     }
   };
 

@@ -1,12 +1,14 @@
 import { Share2, Lock, Globe } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
+import type { User } from "@/types/userType";
 
 type TravelListCardProps = {
   id: string;
   title: string;
   desc: string;
   completed: number;
+  user: User;
   total: number;
   tags: string[];
   coverImage: string;
@@ -21,6 +23,7 @@ export default function TravelListCard({
   title,
   desc,
   completed,
+  user,
   total,
   tags,
   visibility,
@@ -30,7 +33,6 @@ export default function TravelListCard({
   isNew = false,
 }: TravelListCardProps) {
   const percentage = (completed / total) * 100;
-
   return (
     <Link to={`/lists/${id}`}>
       <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
@@ -80,7 +82,7 @@ export default function TravelListCard({
 
           <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
             <div>{collaborators} collaborator{collaborators !== 1 && "s"}</div>
-            <div>Created {created}</div>
+            <div>Created {created} by {user.fullName}</div>
           </div>
         </div>
       </div>

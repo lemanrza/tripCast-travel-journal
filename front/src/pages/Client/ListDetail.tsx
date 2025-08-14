@@ -290,7 +290,6 @@ export default function TravelListDetail() {
   const description = listData?.description || "Exploring the historic cities and beautiful landscapes of Europe";
   const tags = listData?.tags || ["culture", "history", "food"];
 
-  const photos = new Array(8).fill(null);
 
   const statDestinations = listData?.destinations?.length || 0;
   const statCompleted = listData?.destinations?.filter((d: any) => d.status === "completed")?.length || 0;
@@ -341,34 +340,36 @@ export default function TravelListDetail() {
         <StatCard icon={<Users2 className="h-5 w-5 text-purple-600" />} value={statMembers} label="Members" />
         <StatCard icon={<Pencil className="h-5 w-5 text-orange-500" />} value={statJournals} label="Journal Entries" />
       </div>
+      {listData?.collaborators && listData?.collaborators.length > 0 && (
+        <Members
+          isThisListMe={isThisListMe}
+          collaborators={(listData?.collaborators || []).map((user: any) => ({
+            ...user,
+            id: user._id || user.id,
+            avatarUrl: user.profileImage?.url
+          }))}
+          onSearchUsers={async (q) => {
+            const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
+            if (response && response.data) {
+              return response.data.map((user: any) => ({
+                ...user,
+                id: user._id || user.id,
+                avatarUrl: user.profileImage?.url
+              }));
+            }
+            return [];
+          }}
+          onInvite={async (userId) => {
+            const response = await controller.post(`${endpoints.lists}/${listId}/invite`, {
+              userId,
+            });
+            if (!response || !response.success) {
+              throw new Error("Invite failed");
+            }
+          }}
+        />
+      )}
 
-      <Members
-        isThisListMe={isThisListMe}
-        collaborators={(listData?.collaborators || []).map((user: any) => ({
-          ...user,
-          id: user._id || user.id,
-          avatarUrl: user.profileImage?.url
-        }))}
-        onSearchUsers={async (q) => {
-          const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
-          if (response && response.data) {
-            return response.data.map((user: any) => ({
-              ...user,
-              id: user._id || user.id,
-              avatarUrl: user.profileImage?.url
-            }));
-          }
-          return [];
-        }}
-        onInvite={async (userId) => {
-          const response = await controller.post(`${endpoints.lists}/${listId}/invite`, {
-            userId,
-          });
-          if (!response || !response.success) {
-            throw new Error("Invite failed");
-          }
-        }}
-      />
 
       {/* Tabs */}
       <Tabs defaultValue="destinations" className="mt-6">
@@ -556,11 +557,15 @@ export default function TravelListDetail() {
                           ) : null}
                         </div>
                       </div>
+                      {
+                        isThisListMe && (
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="icon" aria-label="Edit destination"><Pencil className="h-5 w-5" /></Button>
+                            <Button variant="ghost" size="icon" aria-label="Delete destination"><Trash2 className="h-5 w-5" /></Button>
+                          </div>
+                        )
+                      }
 
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" aria-label="Edit destination"><Pencil className="h-5 w-5" /></Button>
-                        <Button variant="ghost" size="icon" aria-label="Delete destination"><Trash2 className="h-5 w-5" /></Button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -641,15 +646,35 @@ export default function TravelListDetail() {
 
         {/* Photos Tab */}
         <TabsContent value="photos">
-          <div className="mb-4 flex justify-end">
-            <Button className="gap-2"><Plus className="h-4 w-4" /> Upload Photos</Button>
-          </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {photos.map((_, i) => (
-              <div key={i} className="aspect-[4/3] w-full rounded-lg bg-muted" />
-            ))}
-          </div>
+          {(() => {
+            const publicPhotos = journals
+              .filter((j) => j.public && Array.isArray(j.photos) && j.photos.length > 0)
+              .flatMap((j) => j.photos);
+
+            if (publicPhotos.length === 0) {
+              return (
+                <div className="py-8 text-center text-muted-foreground">
+                  <span>No images to display yet. You can add some by creating a journal entry.</span>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+                {publicPhotos.map((photo, i) => (
+                  <div key={i} className="aspect-[4/3] w-full rounded-lg bg-muted overflow-hidden">
+                    <img
+                      src={photo.url}
+                      alt={`Journal photo ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </TabsContent>
+
       </Tabs>
     </div>
   );
