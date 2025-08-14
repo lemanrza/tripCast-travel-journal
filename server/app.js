@@ -3,7 +3,7 @@ const cors = require("cors")
 const helmet = require("helmet")
 const rateLimit = require("express-rate-limit")
 const passport = require("passport")
-
+//required models
 require("./src/models/userModel.js");
 require("./src/models/journalEntryModel.js");
 require("./src/models/travelListModel.js");
