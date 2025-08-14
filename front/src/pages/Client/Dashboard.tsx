@@ -79,7 +79,6 @@ export default function Dashboard() {
   }, [userRedux?.id]);
   console.log(user);
 
-  // Calculate stats based on fetched lists
   const totalDestinations = [...myLists, ...sharedLists].reduce((total, list) => total + (list.destinations?.length || 0), 0);
   const completedDestinations = [...myLists, ...sharedLists].reduce((total, list) =>
     total + (list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0), 0
@@ -101,6 +100,7 @@ export default function Dashboard() {
     completed: list.destinations?.filter((dest: any) => dest.status === 'completed').length || 0,
     total: list.destinations?.length || 0,
     tags: list.tags || [],
+    user: list.owner,
     coverImage: list.coverImage || "",
     visibility: list.isPublic ? "Public" as const : "Private" as const,
     created: new Date(list.createdAt).toLocaleDateString() || "Unknown",

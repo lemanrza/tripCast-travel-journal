@@ -8,7 +8,7 @@ export type JournalDetail = {
   content: string;
   createdAt: string | Date;
   comments: JournalComment[];
-  photos: string[];
+  photos: { url: string; public_id: string }[];
   likes: string[];
   public: boolean
 };

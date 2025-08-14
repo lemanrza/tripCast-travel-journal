@@ -118,11 +118,9 @@ exports.create = async (payload, userId) => {
 
         const journal = await JournalEntryModel.create(journalData);
 
-        // 🔹 Push journal ID into destination's journals array
         destinationDoc.journals.push(journal._id);
         await destinationDoc.save();
 
-        // Populate the newly created journal
         const populatedJournal = await JournalEntryModel.findById(journal._id)
             .populate("author", "fullName profileImage")
             .populate("destination", "name country");
@@ -238,17 +236,13 @@ exports.toggleLike = async (journalId, userId) => {
             };
         }
 
-        // Check if user already liked this journal
         const likeIndex = journal.likes.findIndex(like => like.userId.toString() === userId.toString());
 
         if (likeIndex > -1) {
-            // Remove like
             journal.likes.splice(likeIndex, 1);
         } else {
-            // Add like
             journal.likes.push({ userId: userId, createdAt: new Date() });
         }
-
         await journal.save();
 
         return {
