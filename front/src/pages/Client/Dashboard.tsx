@@ -104,7 +104,7 @@ export default function Dashboard() {
     total: list.destinations?.length || 0,
     tags: list.tags || [],
     user: list.owner,
-    coverImage: list.coverImage.url || "",
+    coverImage: list.coverImage || "",
     visibility: list.isPublic ? "Public" as const : "Private" as const,
     created: new Date(list.createdAt).toLocaleDateString() || "Unknown",
     collaborators: list.collaborators?.length || 0,
