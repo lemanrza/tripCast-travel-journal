@@ -54,7 +54,6 @@ export default function TravelListDetail() {
   const [editForm, setEditForm] = useState({
     imageFile: null as File | null,
     imageUrl: "",
-    originalPublicId: "" as string | null | undefined,
     name: "",
     country: "",
     status: "" as "" | "wishlist" | "planned" | "completed",
@@ -63,19 +62,16 @@ export default function TravelListDetail() {
     notes: "",
   });
 
-  // Settings modals
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editListOpen, setEditListOpen] = useState(false);
 
-  // Invite dialog state
   const [inviteQ, setInviteQ] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteResults, setInviteResults] = useState<Array<{ id: string; email: string; fullName: string; avatarUrl?: string }>>([]);
   const [invitingId, setInvitingId] = useState<string | null>(null);
 
-  // Edit List form (local-only)
   const [listForm, setListForm] = useState({
     title: "",
     description: "",
@@ -85,7 +81,6 @@ export default function TravelListDetail() {
     coverPreview: "",
   });
 
-  // Prefill edit form when opening
   useEffect(() => {
     if (!editListOpen || !listData) return;
     setListForm({
@@ -105,7 +100,6 @@ export default function TravelListDetail() {
     setListForm((s) => ({ ...s, coverFile: file, coverPreview: url }));
   }
 
-  // Invite search (same backend you already use)
   useEffect(() => {
     if (!inviteOpen) return;
     if (!inviteQ.trim()) {
@@ -151,7 +145,6 @@ export default function TravelListDetail() {
   async function handleEditList() {
     if (!listId) return;
     try {
-      // Upload new cover if selected
       let newCover: string | null = null;
       if (listForm.coverFile) {
         const fd = new FormData();
@@ -196,7 +189,6 @@ export default function TravelListDetail() {
     setEditForm({
       imageFile: null,
       imageUrl: dest.image.url || "",
-      originalPublicId: "", // keep for type, but unused
       name: dest.name || "",
       country: dest.country || "",
       status: (dest.status as any) || "",
@@ -475,18 +467,7 @@ export default function TravelListDetail() {
         return { ...prev, destinations: updatedDestinations };
       });
 
-      if (
-        newImageData &&
-        editForm.originalPublicId &&
-        newImageData.public_id !== editForm.originalPublicId
-      ) {
-        try {
-          const encoded = encodeURIComponent(editForm.originalPublicId);
-          await controller.deleteOne(`${endpoints.upload}/image`, encoded);
-        } catch (delErr) {
-          console.warn("Old image delete failed (non-fatal):", delErr);
-        }
-      }
+    
 
       enqueueSnackbar(resp.message || "Destination updated successfully", { variant: "success" });
       setEditOpen(false);

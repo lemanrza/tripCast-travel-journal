@@ -59,6 +59,13 @@ const userSchema = new mongoose.Schema(
         bio: { type: String, default: null },
         location: { type: String, default: null },
         phoneNumber: { type: String, default: null },
+        collaboratorsRequest: [
+            {
+                fromUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+                list: { type: mongoose.Schema.Types.ObjectId, ref: "TravelList", required: true },
+                createdAt: { type: Date, default: Date.now }
+            }
+        ],
     },
     { timestamps: true }
 );

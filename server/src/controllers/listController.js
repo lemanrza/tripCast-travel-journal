@@ -6,12 +6,18 @@ const {
     create,
     update,
     delete: deleteList,
-    addCollaborator,
-    removeCollaborator,
     addDestination,
     removeDestination,
+    addCollaborator,
+    getMyCollaboratorRequests,
+    acceptCollaboratorRequest,
+    rejectCollaboratorRequest,
+    removeCollaborator,
 } = require("../services/listService.js");
+const UserModel = require("../models/userModel.js");
+const config = require("../config/config.js");
 const formatMongoData = require("../utils/formatMongoData.js");
+const { sendCollaboratorInviteEmail } = require("../utils/sendMail.js");
 
 exports.getAllLists = async (_, res, next) => {
     try {
@@ -30,9 +36,9 @@ exports.getListById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user._id;
-        
+
         const list = await getOne(id);
-        
+
         if (!list) {
             res.status(404).json({
                 message: "Travel list not found!",
@@ -176,29 +182,48 @@ exports.addCollaboratorToList = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { collaboratorEmail } = req.body;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
         if (!collaboratorEmail) {
-            return res.status(400).json({
-                message: "Collaborator email is required",
-                data: null,
-            });
+            return res.status(400).json({ message: "Collaborator email is required", data: null });
         }
 
-        const response = await addCollaborator(id, collaboratorEmail, userId);
+        const response = await addCollaborator(id, collaboratorEmail, String(userId));
 
         if (!response.success) {
-            const statusCode = response.message === "Travel list not found" || 
-                              response.message === "User with this email not found" ? 404 : 
-                              response.message === "Only the owner can add collaborators" ? 403 : 400;
-            
-            return res.status(statusCode).json({
-                message: response.message,
-                data: null,
-            });
+            const statusCode =
+                response.message === "Travel list not found" ||
+                    response.message === "User with this email not found" ? 404 :
+                    response.message === "Only the owner can add collaborators" ? 403 :
+                        response.message === "Invite already sent" ? 409 : 400;
+
+            return res.status(statusCode).json({ message: response.message, data: null });
         }
 
-        res.status(200).json({
+        try {
+            const [inviterDoc, collaboratorDoc] = await Promise.all([
+                UserModel.findById(userId).select("fullName email"),
+                UserModel.findOne({ email: collaboratorEmail }).select("fullName email"),
+            ]);
+
+            const listTitle = response.data?.title || "a travel list";
+            const base = (config.CLIENT_URL || config.APP_URL || "").replace(/\/+$/, "");
+            const listLink = base ? `${base}/lists/${id}` : undefined;
+
+            await sendCollaboratorInviteEmail({
+                toEmail: collaboratorDoc?.email || collaboratorEmail,
+                toName: collaboratorDoc?.fullName || collaboratorEmail,
+                inviterName: inviterDoc?.fullName || "A TripCast user",
+                listTitle,
+                listLink,
+            });
+
+            console.log("Collaborator invite email queued to:", collaboratorDoc?.email || collaboratorEmail);
+        } catch (mailErr) {
+            console.error("Collaborator email failed (non-fatal):", mailErr?.message || mailErr);
+        }
+
+        return res.status(200).json({
             message: response.message,
             data: formatMongoData(response.data),
         });
@@ -210,27 +235,62 @@ exports.addCollaboratorToList = async (req, res, next) => {
 exports.removeCollaboratorFromList = async (req, res, next) => {
     try {
         const { id, collaboratorId } = req.params;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
-        const response = await removeCollaborator(id, collaboratorId, userId);
+        const response = await removeCollaborator(id, collaboratorId, String(userId));
 
         if (!response.success) {
-            const statusCode = response.message === "Travel list not found" ? 404 :
-                              response.message === "Only the owner can remove collaborators" ? 403 : 400;
-            
-            return res.status(statusCode).json({
-                message: response.message,
-                data: null,
-            });
+            const statusCode =
+                response.message === "Travel list not found" ? 404 :
+                    response.message === "Only the owner can remove collaborators" ? 403 :
+                        400;
+
+            return res.status(statusCode).json({ message: response.message, data: null });
         }
 
         res.status(200).json({
             message: response.message,
             data: formatMongoData(response.data),
         });
-    } catch (error) {
-        next(error);
+    } catch (err) {
+        next(err);
     }
+};
+
+
+exports.getPendingCollabRequests = async (req, res, next) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const response = await getMyCollaboratorRequests(String(userId));
+        if (!response.success) return res.status(400).json({ message: response.message, data: null });
+        res.status(200).json({ message: "OK", data: response.data });
+    } catch (e) { next(e); }
+};
+
+exports.acceptCollabRequest = async (req, res, next) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const { requestId } = req.params;
+        const response = await acceptCollaboratorRequest(String(userId), String(requestId));
+        if (!response.success) {
+            const status = /not found/i.test(response.message) ? 404 : 400;
+            return res.status(status).json({ message: response.message, data: null });
+        }
+        res.status(200).json({ message: response.message, data: formatMongoData(response.data) });
+    } catch (e) { next(e); }
+};
+
+exports.rejectCollabRequest = async (req, res, next) => {
+    try {
+        const userId = req.user._id || req.user.id;
+        const { requestId } = req.params;
+        const response = await rejectCollaboratorRequest(String(userId), String(requestId));
+        if (!response.success) {
+            const status = /not found/i.test(response.message) ? 404 : 400;
+            return res.status(status).json({ message: response.message, data: null });
+        }
+        res.status(200).json({ message: response.message, data: null });
+    } catch (e) { next(e); }
 };
 
 exports.addDestinationToList = async (req, res, next) => {
@@ -250,8 +310,8 @@ exports.addDestinationToList = async (req, res, next) => {
 
         if (!response.success) {
             const statusCode = response.message === "Travel list not found" ? 404 :
-                              response.message === "You don't have permission to add destinations to this list" ? 403 : 400;
-            
+                response.message === "You don't have permission to add destinations to this list" ? 403 : 400;
+
             return res.status(statusCode).json({
                 message: response.message,
                 data: null,
@@ -276,8 +336,8 @@ exports.removeDestinationFromList = async (req, res, next) => {
 
         if (!response.success) {
             const statusCode = response.message === "Travel list not found" ? 404 :
-                              response.message === "You don't have permission to remove destinations from this list" ? 403 : 400;
-            
+                response.message === "You don't have permission to remove destinations from this list" ? 403 : 400;
+
             return res.status(statusCode).json({
                 message: response.message,
                 data: null,

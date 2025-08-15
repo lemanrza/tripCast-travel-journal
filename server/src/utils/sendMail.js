@@ -111,7 +111,7 @@ exports.sendUnlockAccountEmail = async (
 ) => {
   try {
     console.log(`Sending unlock account email to: ${recipientEmail}`);
-    
+
     const htmlContent = generateUnlockAccountHTML(
       name,
       unlockAccountLink,
@@ -231,5 +231,69 @@ exports.sendForgotPasswordEmail = async (
     });
   } catch (error) {
     console.error("Error sending email:", error);
+  }
+};
+
+const generateCollaboratorInviteHTML = (toName, inviterName, listTitle, listLink) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body{font-family:Arial,sans-serif;background:#f8fafb;margin:0;padding:0}
+    .wrap{max-width:600px;margin:20px auto;background:#fff;border:1px solid #ddd;border-radius:8px;overflow:hidden}
+    .head{background:#FF6F61;color:#fff;text-align:center;padding:20px}
+    .head h1{margin:0;font-size:22px}
+    .body{padding:24px;color:#333;line-height:1.6}
+    .btnwrap{text-align:center;margin:24px 0}
+    .btn{display:inline-block;padding:10px 20px;background:#fff;color:#FF6F61;text-decoration:none;border-radius:5px;font-weight:bold;border:2px solid #FF6F61}
+    .btn:hover{background:#FF6F61;color:#fff}
+    .foot{text-align:center;padding:16px;background:#f8fafb;font-size:12px;color:#777}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head"><h1>New Collaboration on TripCast</h1></div>
+    <div class="body">
+      <p>Hi ${toName},</p>
+      <p><strong>${inviterName}</strong> added you as a collaborator on the list <strong>${listTitle}</strong>.</p>
+      ${listLink
+    ? `<div class="btnwrap"><a class="btn" href="${listLink}">Open the list</a></div>`
+    : ""
+  }
+      <p>This email is just to let you know. No further action is required.</p>
+      <p>— The TripCast Team</p>
+    </div>
+    <div class="foot">&copy; ${new Date().getFullYear()} TripCast. All rights reserved.</div>
+  </div>
+</body>
+</html>
+`;
+
+exports.sendCollaboratorInviteEmail = async ({
+  toEmail,
+  toName,
+  inviterName,
+  listTitle,
+  listLink, // optional
+}) => {
+  try {
+    const html = generateCollaboratorInviteHTML(
+      toName,
+      inviterName,
+      listTitle,
+      listLink || ""
+    );
+
+    const result = await transporter.sendMail({
+      from: `"TripCast" <${config.GMAIL_USER}>`,
+      to: toEmail,
+      subject: `${inviterName} added you to “${listTitle}” on TripCast`,
+      html,
+    });
+
+    return result;
+  } catch (err) {
+    console.error("Error sending collaborator invite email:", err);
   }
 };

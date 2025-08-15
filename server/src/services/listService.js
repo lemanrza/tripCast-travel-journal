@@ -30,7 +30,7 @@ exports.getUserLists = async (userId) => {
 };
 
 exports.getCollaborativeLists = async (userId) => {
-    return await TravelListModel.find({ 
+    return await TravelListModel.find({
         collaborators: { $in: [userId] },
         owner: { $ne: userId }
     })
@@ -191,7 +191,9 @@ exports.delete = async (listId, userId) => {
     }
 };
 
-exports.addCollaborator = async (listId, collaboratorEmail, userId) => {
+
+
+exports.addDestination = async (listId, destinationId, userId) => {
     try {
         const list = await TravelListModel.findById(listId);
 
@@ -202,48 +204,28 @@ exports.addCollaborator = async (listId, collaboratorEmail, userId) => {
             };
         }
 
-        // Check if user is the owner
-        if (list.owner.toString() !== userId) {
+        // Check if user has write access (owner or collaborator)
+        const hasWriteAccess = list.owner.toString() === userId ||
+            list.collaborators.includes(userId);
+
+        if (!hasWriteAccess) {
             return {
                 success: false,
-                message: "Only the owner can add collaborators",
+                message: "You don't have permission to add destinations to this list",
             };
         }
 
-        // Find the collaborator by email
-        const collaborator = await UserModel.findOne({ email: collaboratorEmail });
-
-        if (!collaborator) {
+        // Check if destination is already in the list
+        if (list.destinations.includes(destinationId)) {
             return {
                 success: false,
-                message: "User with this email not found",
+                message: "Destination is already in this list",
             };
         }
 
-        // Check if user is trying to add themselves
-        if (collaborator._id.toString() === userId) {
-            return {
-                success: false,
-                message: "You cannot add yourself as a collaborator",
-            };
-        }
-
-        // Check if user is already a collaborator
-        if (list.collaborators.includes(collaborator._id)) {
-            return {
-                success: false,
-                message: "User is already a collaborator",
-            };
-        }
-
-        // Add collaborator to list
-        list.collaborators.push(collaborator._id);
+        // Add destination to list
+        list.destinations.push(destinationId);
         await list.save();
-
-        // Add list to collaborator's lists
-        await UserModel.findByIdAndUpdate(collaborator._id, {
-            $push: { lists: listId }
-        });
 
         const updatedList = await TravelListModel.findById(listId)
             .populate("owner", "fullName email profileImage")
@@ -253,7 +235,7 @@ exports.addCollaborator = async (listId, collaboratorEmail, userId) => {
         return {
             success: true,
             data: updatedList,
-            message: "Collaborator added successfully!",
+            message: "Destination added to list successfully!",
         };
     } catch (error) {
         let message = "Internal server error";
@@ -263,6 +245,125 @@ exports.addCollaborator = async (listId, collaboratorEmail, userId) => {
         return {
             success: false,
             message: message,
+        };
+    }
+};
+
+exports.removeDestination = async (listId, destinationId, userId) => {
+    try {
+        const list = await TravelListModel.findById(listId);
+
+        if (!list) {
+            return {
+                success: false,
+                message: "Travel list not found",
+            };
+        }
+
+        // Check if user has write access (owner or collaborator)
+        const hasWriteAccess = list.owner.toString() === userId ||
+            list.collaborators.includes(userId);
+
+        if (!hasWriteAccess) {
+            return {
+                success: false,
+                message: "You don't have permission to remove destinations from this list",
+            };
+        }
+
+        // Check if destination exists in the list
+        if (!list.destinations.includes(destinationId)) {
+            return {
+                success: false,
+                message: "Destination is not in this list",
+            };
+        }
+
+        // Remove destination from list
+        list.destinations = list.destinations.filter(
+            id => id.toString() !== destinationId
+        );
+        await list.save();
+
+        const updatedList = await TravelListModel.findById(listId)
+            .populate("owner", "fullName email profileImage")
+            .populate("collaborators", "fullName email profileImage")
+            .populate("destinations");
+
+        return {
+            success: true,
+            data: updatedList,
+            message: "Destination removed from list successfully!",
+        };
+    } catch (error) {
+        let message = "Internal server error";
+        if (error && typeof error === "object" && "message" in error) {
+            message = error.message;
+        }
+        return {
+            success: false,
+            message: message,
+        };
+    }
+};
+
+exports.addCollaborator = async (listId, collaboratorEmail, userId) => {
+    try {
+        const list = await TravelListModel.findById(listId);
+        if (!list) {
+            return { success: false, message: "Travel list not found" };
+        }
+
+        // Only owner can invite
+        if (String(list.owner) !== String(userId)) {
+            return { success: false, message: "Only the owner can add collaborators" };
+        }
+
+        // Find invitee by email
+        const collaborator = await UserModel.findOne({ email: collaboratorEmail });
+        if (!collaborator) {
+            return { success: false, message: "User with this email not found" };
+        }
+
+        if (String(collaborator._id) === String(userId)) {
+            return { success: false, message: "You cannot add yourself as a collaborator" };
+        }
+
+        // Already a collaborator (or owner)?
+        const alreadyCollab =
+            String(list.owner) === String(collaborator._id) ||
+            (list.collaborators || []).some((id) => String(id) === String(collaborator._id));
+        if (alreadyCollab) {
+            return { success: false, message: "User is already a collaborator" };
+        }
+
+        // Duplicate pending invite?
+        const hasPending = (collaborator.collaboratorsRequest || []).some(
+            (r) => String(r.fromUser) === String(userId) && String(r.list) === String(listId)
+        );
+        if (hasPending) {
+            return { success: false, message: "Invite already sent" };
+        }
+
+        // Push invite to invitee's inbox
+        collaborator.collaboratorsRequest.push({ fromUser: userId, list: list._id });
+        await collaborator.save();
+
+        // Return hydrated list (unchanged; you may not need it for the invite flow)
+        const updatedList = await TravelListModel.findById(listId)
+            .populate("owner", "fullName email profileImage")
+            .populate("collaborators", "fullName email profileImage")
+            .populate("destinations");
+
+        return {
+            success: true,
+            data: updatedList,
+            message: "Invitation sent successfully!",
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error?.message || "Internal server error",
         };
     }
 };
@@ -327,116 +428,84 @@ exports.removeCollaborator = async (listId, collaboratorId, userId) => {
     }
 };
 
-exports.addDestination = async (listId, destinationId, userId) => {
+exports.getMyCollaboratorRequests = async (userId) => {
     try {
-        const list = await TravelListModel.findById(listId);
+        const me = await UserModel.findById(userId)
+            .select("collaboratorsRequest")
+            .populate({ path: "collaboratorsRequest.fromUser", select: "fullName email profileImage" })
+            .populate({ path: "collaboratorsRequest.list", select: "title coverImage owner" });
 
-        if (!list) {
-            return {
-                success: false,
-                message: "Travel list not found",
-            };
-        }
-
-        // Check if user has write access (owner or collaborator)
-        const hasWriteAccess = list.owner.toString() === userId || 
-                              list.collaborators.includes(userId);
-
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to add destinations to this list",
-            };
-        }
-
-        // Check if destination is already in the list
-        if (list.destinations.includes(destinationId)) {
-            return {
-                success: false,
-                message: "Destination is already in this list",
-            };
-        }
-
-        // Add destination to list
-        list.destinations.push(destinationId);
-        await list.save();
-
-        const updatedList = await TravelListModel.findById(listId)
-            .populate("owner", "fullName email profileImage")
-            .populate("collaborators", "fullName email profileImage")
-            .populate("destinations");
-
-        return {
-            success: true,
-            data: updatedList,
-            message: "Destination added to list successfully!",
-        };
+        return { success: true, data: me?.collaboratorsRequest || [] };
     } catch (error) {
-        let message = "Internal server error";
-        if (error && typeof error === "object" && "message" in error) {
-            message = error.message;
-        }
-        return {
-            success: false,
-            message: message,
-        };
+        return { success: false, message: error?.message || "Internal server error" };
     }
 };
 
-exports.removeDestination = async (listId, destinationId, userId) => {
+exports.acceptCollaboratorRequest = async (userId, requestId) => {
+    const session = await UserModel.startSession();
+    session.startTransaction();
     try {
-        const list = await TravelListModel.findById(listId);
+        const me = await UserModel.findById(userId).session(session);
+        if (!me) throw new Error("User not found");
 
+        const reqDoc = me.collaboratorsRequest.id(requestId);
+        if (!reqDoc) throw new Error("Request not found");
+
+        const listId = reqDoc.list;
+        const list = await TravelListModel.findById(listId).session(session);
         if (!list) {
-            return {
-                success: false,
-                message: "Travel list not found",
-            };
+            // remove stale request
+            reqDoc.deleteOne();
+            await me.save({ session });
+            await session.commitTransaction();
+            session.endSession();
+            return { success: false, message: "List not found; request removed" };
         }
 
-        // Check if user has write access (owner or collaborator)
-        const hasWriteAccess = list.owner.toString() === userId || 
-                              list.collaborators.includes(userId);
-
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to remove destinations from this list",
-            };
+        // Add to list collaborators and user's lists idempotently
+        if (!list.collaborators.some((id) => String(id) === String(userId)) &&
+            String(list.owner) !== String(userId)) {
+            list.collaborators.push(userId);
+            await list.save({ session });
         }
 
-        // Check if destination exists in the list
-        if (!list.destinations.includes(destinationId)) {
-            return {
-                success: false,
-                message: "Destination is not in this list",
-            };
+        if (!me.lists.some((id) => String(id) === String(listId))) {
+            me.lists.push(listId);
         }
 
-        // Remove destination from list
-        list.destinations = list.destinations.filter(
-            id => id.toString() !== destinationId
-        );
-        await list.save();
+        // Remove the request
+        reqDoc.deleteOne();
+        await me.save({ session });
 
-        const updatedList = await TravelListModel.findById(listId)
+        await session.commitTransaction();
+        session.endSession();
+
+        const hydrated = await TravelListModel
+            .findById(listId)
             .populate("owner", "fullName email profileImage")
-            .populate("collaborators", "fullName email profileImage")
-            .populate("destinations");
+            .populate("collaborators", "fullName email profileImage");
 
-        return {
-            success: true,
-            data: updatedList,
-            message: "Destination removed from list successfully!",
-        };
+        return { success: true, message: "Joined as collaborator", data: hydrated };
     } catch (error) {
-        let message = "Internal server error";
-        if (error && typeof error === "object" && "message" in error) {
-            message = error.message;
-        }
-        return {
-            success: false,
-            message: message,
-        };
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, message: error?.message || "Internal server error" };
+    }
+};
+
+exports.rejectCollaboratorRequest = async (userId, requestId) => {
+    try {
+        const me = await UserModel.findById(userId);
+        if (!me) return { success: false, message: "User not found" };
+
+        const reqDoc = me.collaboratorsRequest.id(requestId);
+        if (!reqDoc) return { success: false, message: "Request not found" };
+
+        reqDoc.deleteOne();
+        await me.save();
+
+        return { success: true, message: "Invite dismissed" };
+    } catch (error) {
+        return { success: false, message: error?.message || "Internal server error" };
     }
 };
