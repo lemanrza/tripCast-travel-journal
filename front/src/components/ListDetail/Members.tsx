@@ -42,6 +42,7 @@ type User = {
 type MembersProps = {
     collaborators: Member[];
     onSearchUsers: (query: string) => Promise<User[]>;
+    /** Optional: if provided, we’ll call this instead of our built-in API invite */
     onInvite?: (userEmail: string) => Promise<void>;
     isThisListMe: boolean;
     currentUserId: string
