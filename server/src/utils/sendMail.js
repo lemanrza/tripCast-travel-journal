@@ -234,7 +234,7 @@ exports.sendForgotPasswordEmail = async (
   }
 };
 
-const generateCollaboratorInviteHTML = (toName, inviterName, listTitle, listLink) => `
+const generateCollaboratorInviteHTML = (toName, inviterName, listTitle) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -257,10 +257,7 @@ const generateCollaboratorInviteHTML = (toName, inviterName, listTitle, listLink
     <div class="body">
       <p>Hi ${toName},</p>
       <p><strong>${inviterName}</strong> added you as a collaborator on the list <strong>${listTitle}</strong>.</p>
-      ${listLink
-    ? `<div class="btnwrap"><a class="btn" href="${listLink}">Open the list</a></div>`
-    : ""
-  }
+      <div class="btnwrap"><a class="btn" href="${config.CLIENT_URL}">Login your account and check requests</a></div>
       <p>This email is just to let you know. No further action is required.</p>
       <p>— The TripCast Team</p>
     </div>
@@ -275,7 +272,7 @@ exports.sendCollaboratorInviteEmail = async ({
   toName,
   inviterName,
   listTitle,
-  listLink, // optional
+  listLink,
 }) => {
   try {
     const html = generateCollaboratorInviteHTML(
