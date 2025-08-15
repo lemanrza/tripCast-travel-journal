@@ -298,6 +298,83 @@ export default function TravelListDetail() {
     }
   };
 
+  const handleEditDestination = async (): Promise<void> => {
+    if (!editTarget) return;
+
+    setSavingEdit(true);
+    try {
+      let newImageData: { url: string; public_id: string } | null = null;
+      if (editForm.imageFile) {
+        const fd = new FormData();
+        fd.append("image", editForm.imageFile);
+
+        const uploadRes = await controller.post(`${endpoints.upload}/image`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (!uploadRes?.success || !uploadRes.data?.url) {
+          throw new Error("Image upload failed");
+        }
+
+        newImageData = {
+          url: uploadRes.data.url,
+          public_id: uploadRes.data.public_id,
+        };
+      }
+
+      const patch: Partial<Destination> = {
+        name: editForm.name.trim(),
+        country: editForm.country.trim(),
+        status: editForm.status as any,
+        notes: editForm.notes?.trim() ?? "",
+        datePlanned:
+          editForm.status === "planned" || editForm.status === "completed"
+            ? (editForm.datePlanned || undefined)
+            : undefined,
+        dateVisited:
+          editForm.status === "completed"
+            ? (editForm.dateVisited || undefined)
+            : undefined,
+        ...(newImageData ? { image: newImageData } : {}),
+      };
+
+      const resp = await controller.update(endpoints.destinations, editTarget._id, patch);
+      if (!resp || !resp.data) {
+        throw new Error(resp?.message || "Failed to update destination");
+      }
+
+      const updated = resp.data;
+      setListData((prev: any) => {
+        if (!prev) return prev;
+        const updatedDestinations = (prev.destinations || []).map((d: Destination) =>
+          d._id === editTarget._id ? { ...d, ...updated } : d
+        );
+        return { ...prev, destinations: updatedDestinations };
+      });
+
+      if (
+        newImageData &&
+        editForm.originalPublicId &&
+        newImageData.public_id !== editForm.originalPublicId
+      ) {
+        try {
+          const encoded = encodeURIComponent(editForm.originalPublicId);
+          await controller.deleteOne(`${endpoints.upload}/image`, encoded);
+        } catch (delErr) {
+          console.warn("Old image delete failed (non-fatal):", delErr);
+        }
+      }
+
+      enqueueSnackbar(resp.message || "Destination updated successfully", { variant: "success" });
+      setEditOpen(false);
+      setEditTarget(null);
+    } catch (err: any) {
+      console.error("Error updating destination:", err);
+      enqueueSnackbar(err?.message || "Failed to update destination", { variant: "error" });
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   useEffect(() => {
     const fetchJournals = async () => {
@@ -796,78 +873,7 @@ export default function TravelListDetail() {
                 <Button
                   variant="default"
                   disabled={savingEdit || !editTarget || !editForm.name.trim() || !editForm.country.trim() || !editForm.status}
-                  onClick={async () => {
-                    if (!editTarget) return;
-
-                    setSavingEdit(true);
-                    try {
-                      let newImageData: { url: string; public_id: string } | null = null;
-                      if (editForm.imageFile) {
-                        const fd = new FormData();
-                        fd.append("image", editForm.imageFile);
-                        const uploadRes = await controller.post(`${endpoints.upload}/image`, fd, {
-                          headers: { "Content-Type": "multipart/form-data" },
-                        });
-                        if (!uploadRes?.success || !uploadRes.data?.url) {
-                          throw new Error("Image upload failed");
-                        }
-                        newImageData = {
-                          url: uploadRes.data.url,
-                          public_id: uploadRes.data.public_id,
-                        };
-                      }
-
-                      const patch: Partial<Destination> = {
-                        name: editForm.name.trim(),
-                        country: editForm.country.trim(),
-                        status: editForm.status as any,
-                        notes: editForm.notes?.trim() ?? "",
-                        datePlanned:
-                          editForm.status === "planned" || editForm.status === "completed"
-                            ? (editForm.datePlanned || undefined)
-                            : undefined,
-                        dateVisited:
-                          editForm.status === "completed"
-                            ? (editForm.dateVisited || undefined)
-                            : undefined,
-                        ...(newImageData ? { image: newImageData } : {}),
-                      };
-
-                      const resp = await controller.update(endpoints.destinations, editTarget._id, patch);
-
-                      if (!resp || !resp.data) {
-                        throw new Error(resp?.message || "Failed to update destination");
-                      }
-
-                      const updated = resp.data;
-                      setListData((prev: any) => {
-                        if (!prev) return prev;
-                        const updatedDestinations = (prev.destinations || []).map((d: Destination) =>
-                          d._id === editTarget._id ? { ...d, ...updated } : d
-                        );
-                        return { ...prev, destinations: updatedDestinations };
-                      });
-
-                      if (newImageData && editForm.originalPublicId) {
-                        try {
-                          await controller.post(`${endpoints.upload}/image/delete`, {
-                            public_id: editForm.originalPublicId,
-                          });
-                        } catch (delErr) {
-                          console.warn("Old image delete failed (non-fatal):", delErr);
-                        }
-                      }
-
-                      enqueueSnackbar(resp.message || "Destination updated successfully", { variant: "success" });
-                      setEditOpen(false);
-                      setEditTarget(null);
-                    } catch (err: any) {
-                      console.error("Error updating destination:", err);
-                      enqueueSnackbar(err?.message || "Failed to update destination", { variant: "error" });
-                    } finally {
-                      setSavingEdit(false);
-                    }
-                  }}
+                  onClick={handleEditDestination}
                 >
                   {savingEdit ? "Saving..." : "Save changes"}
                 </Button>
