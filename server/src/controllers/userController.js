@@ -8,6 +8,8 @@ const {
     forgotPassword: forgotPasswordService,
     resetPass,
     unlockAcc,
+    changePassword,
+    updateOne,
 } = require("../services/userService.js");
 const formatMongoData = require("../utils/formatMongoData.js");
 const bcrypt = require("bcrypt");
@@ -37,7 +39,7 @@ exports.getUsers = async (
 exports.searchUsers = async (req, res, next) => {
     try {
         const { q } = req.query;
-        
+
         if (!q || q.trim().length === 0) {
             return res.status(400).json({
                 message: "Search query is required",
@@ -46,7 +48,7 @@ exports.searchUsers = async (req, res, next) => {
         }
 
         const users = await getAll();
-        
+
         // Filter users based on search query (email or fullName)
         const filteredUsers = users.filter(user => {
             const query = q.toLowerCase();
@@ -277,6 +279,36 @@ exports.unlockAccount = async (
         const response = await unlockAcc(token);
 
         res.redirect(`${config.CLIENT_URL}/?message=${response.message}`);
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.updateUserById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updated = await updateOne(id, req.body);
+
+        if (!updated) {
+            return res.status(404).json({ message: "no such user found!", data: null });
+        }
+        res.status(200).json({ message: "user updated successfully!", data: updated });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.changeUserPassword = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ message: "oldPassword and newPassword are required" });
+        }
+
+        await changePassword(id, oldPassword, newPassword);
+        res.status(200).json({ message: "password updated successfully!" });
     } catch (error) {
         next(error);
     }
