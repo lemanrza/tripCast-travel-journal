@@ -172,7 +172,6 @@ exports.update = async (destinationId, payload, userId) => {
     }
 };
 
-
 exports.delete = async (destinationId, userId) => {
     try {
         const destination = await DestinationModel.findById(destinationId)
@@ -281,17 +280,6 @@ exports.updateImage = async (destinationId, imageData, userId) => {
             };
         }
 
-        // Check if user has write access to the list
-        const list = destination.listId;
-        const hasWriteAccess = list.owner.toString() === userId.toString() ||
-            list.collaborators.some(collaborator => collaborator.toString() === userId.toString());
-
-        if (!hasWriteAccess) {
-            return {
-                success: false,
-                message: "You don't have permission to update the image for this destination",
-            };
-        }
 
         const { url, public_id } = imageData;
 

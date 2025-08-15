@@ -6,9 +6,7 @@ const {
     create,
     update,
     delete: deleteDestination,
-    updateStatus,
-    addImage,
-    removeImage,
+    updateStatus
 } = require("../services/destinationService.js");
 const formatMongoData = require("../utils/formatMongoData.js");
 
@@ -226,59 +224,3 @@ exports.updateDestinationStatus = async (req, res, next) => {
     }
 };
 
-exports.addImageToDestination = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { url, public_id } = req.body;
-        const userId = req.user._id;
-
-        if (!url || !public_id) {
-            return res.status(400).json({
-                message: "Image URL and public_id are required",
-                data: null,
-            });
-        }
-
-        const imageData = { url, public_id };
-        const response = await addImage(id, imageData, userId);
-
-        if (!response.success) {
-            const statusCode = response.message === "Destination not found" ? 404 : 403;
-            return res.status(statusCode).json({
-                message: response.message,
-                data: null,
-            });
-        }
-
-        res.status(200).json({
-            message: response.message,
-            data: formatMongoData(response.data),
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.removeImageFromDestination = async (req, res, next) => {
-    try {
-        const { id, imageId } = req.params;
-        const userId = req.user._id;
-
-        const response = await removeImage(id, imageId, userId);
-
-        if (!response.success) {
-            const statusCode = response.message === "Destination not found" ? 404 : 403;
-            return res.status(statusCode).json({
-                message: response.message,
-                data: null,
-            });
-        }
-
-        res.status(200).json({
-            message: response.message,
-            data: formatMongoData(response.data),
-        });
-    } catch (error) {
-        next(error);
-    }
-};

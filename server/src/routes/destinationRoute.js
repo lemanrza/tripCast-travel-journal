@@ -7,9 +7,7 @@ const {
     createDestination,
     updateDestination,
     deleteDestination,
-    updateDestinationStatus,
-    addImageToDestination,
-    removeImageFromDestination,
+    updateDestinationStatus
 } = require("../controllers/destinationController");
 const authenticateToken = require("../middleware/authenticateToken");
 
@@ -29,9 +27,5 @@ destinationRouter.delete("/:id", deleteDestination);
 
 // Status management
 destinationRouter.patch("/:id/status", updateDestinationStatus);
-
-// Image management
-destinationRouter.post("/:id/images", addImageToDestination);
-destinationRouter.delete("/:id/images/:imageId", removeImageFromDestination);
 
 module.exports = destinationRouter;

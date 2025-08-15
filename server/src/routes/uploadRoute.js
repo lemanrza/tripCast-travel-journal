@@ -94,28 +94,39 @@ router.post("/images", upload.array("images", 5), (req, res) => {
 router.delete("/image/:public_id", async (req, res) => {
   try {
     const { public_id } = req.params;
-    
-    const result = await cloudinary.uploader.destroy(public_id);
-    
-    if (result.result === "ok") {
-      res.status(200).json({
-        message: "Image deleted successfully",
-        success: true
-      });
-    } else {
-      res.status(404).json({
-        message: "Image not found or already deleted",
-        success: false
+    if (!public_id) {
+      return res.status(400).json({ message: "public_id is required", success: false });
+    }
+
+    // Call Cloudinary; this param is already decoded by Express.
+    const result = await cloudinary.uploader.destroy(public_id, {
+      resource_type: "image",
+      invalidate: true,
+    });
+
+    // Treat "not found" as success so the operation is idempotent
+    if (result.result === "ok" || result.result === "not found") {
+      return res.status(200).json({
+        message: "Image deleted (or already gone)",
+        success: true,
+        result,
       });
     }
+
+    return res.status(500).json({
+      message: "Cloudinary did not confirm deletion",
+      success: false,
+      result,
+    });
   } catch (error) {
     console.error("Delete error:", error);
     res.status(500).json({
       message: "Failed to delete image",
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
+
 
 module.exports = router;
