@@ -805,7 +805,7 @@ export default function TravelListDetail() {
                 email: u.email,
                 fullName: u.fullName,
                 avatarUrl: u.profileImage?.url,
-                collaboratorsRequest: u.collaboratorsRequest || [],   // <-- keep it
+                collaboratorsRequest: u.collaboratorsRequest || [],   
               }));
             }
             return [];
