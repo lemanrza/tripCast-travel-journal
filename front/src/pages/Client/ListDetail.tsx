@@ -43,7 +43,6 @@ export default function TravelListDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [journals, setJournals] = useState<JournalDetail[]>([]);
   const [journalsLoading, setJournalsLoading] = useState(false);
-  // EDIT state
   const [editOpen, setEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editTarget, setEditTarget] = useState<Destination | null>(null);
@@ -54,7 +53,7 @@ export default function TravelListDetail() {
     name: "",
     country: "",
     status: "" as "" | "wishlist" | "planned" | "completed",
-    datePlanned: "", // keep as YYYY-MM-DD (same format you use in create)
+    datePlanned: "",
     dateVisited: "",
     notes: "",
   });
@@ -268,19 +267,37 @@ export default function TravelListDetail() {
     }
   };
 
-  const handleDeleteDestination = async (destId: string) => {
-    const response = await controller.deleteOne(endpoints.destinations, destId);
-    if (response && response.success) {
-      setListData((prev: any) => {
-        if (!prev) return prev;
-        const updatedDestinations = prev.destinations.filter((d: Destination) => d._id !== destId);
-        return { ...prev, destinations: updatedDestinations };
-      });
-      enqueueSnackbar("Destination deleted successfully", { variant: "success" });
-    } else {
-      enqueueSnackbar("Failed to delete destination", { variant: "error" });
+  const handleDeleteDestination = async (dest: Destination) => {
+    try {
+      const resp = await controller.deleteOne(endpoints.destinations, dest._id);
+
+      if (resp && resp.success) {
+        setListData((prev: any) => {
+          if (!prev) return prev;
+          const updatedDestinations = (prev.destinations || []).filter(
+            (d: Destination) => d._id !== dest._id
+          );
+          return { ...prev, destinations: updatedDestinations };
+        });
+        enqueueSnackbar("Destination deleted successfully", { variant: "success" });
+
+        if (dest.image?.public_id) {
+          try {
+            const encoded = encodeURIComponent(dest.image.public_id);
+            await controller.deleteOne(`${endpoints.upload}/image`, encoded);
+          } catch (imgErr) {
+            console.warn("Cloudinary image delete failed (non-fatal):", imgErr);
+          }
+        }
+      } else {
+        enqueueSnackbar(resp?.message || "Failed to delete destination", { variant: "error" });
+      }
+    } catch (err: any) {
+      console.error("Delete destination error:", err);
+      enqueueSnackbar(err?.message || "Failed to delete destination", { variant: "error" });
     }
   };
+
 
   useEffect(() => {
     const fetchJournals = async () => {
@@ -642,7 +659,7 @@ export default function TravelListDetail() {
                             <Pencil className="h-5 w-5" />
                           </Button>
                           <Button
-                            onClick={() => handleDeleteDestination(d._id)}
+                            onClick={() => handleDeleteDestination(d)}
                             variant="ghost"
                             size="icon"
                             aria-label="Delete destination"
