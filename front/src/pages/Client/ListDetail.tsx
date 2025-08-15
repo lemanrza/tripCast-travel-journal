@@ -128,12 +128,14 @@ export default function TravelListDetail() {
     return () => clearTimeout(t);
   }, [inviteQ, inviteOpen]);
 
-  async function handleInviteUser(userId: string) {
+  async function handleInviteUser(email: string) {
     try {
-      setInvitingId(userId);
-      const resp = await controller.post(`${endpoints.lists}/${listId}/invite`, { userId });
+      setInvitingId(email);
+      const resp = await controller.post(`${endpoints.lists}/${listId}/invite`, {
+        collaboratorEmail: email,
+      });
       if (!resp || !resp.success) throw new Error(resp?.message || "Invite failed");
-      setInviteResults((r) => r.filter((u) => u.id !== userId));
+      setInviteResults((r) => r.filter((x) => x.email !== email));
       enqueueSnackbar("Invite sent", { variant: "success" });
     } catch (e: any) {
       setInviteError(e?.message ?? "Invite failed");
@@ -467,7 +469,7 @@ export default function TravelListDetail() {
         return { ...prev, destinations: updatedDestinations };
       });
 
-    
+
 
       enqueueSnackbar(resp.message || "Destination updated successfully", { variant: "success" });
       setEditOpen(false);
@@ -672,10 +674,10 @@ export default function TravelListDetail() {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => handleInviteUser(u.id)}
-                        disabled={invitingId === u.id}
+                        onClick={() => handleInviteUser(u.email)}
+                        disabled={invitingId === u.email}
                       >
-                        {invitingId === u.id ? "Inviting…" : "Invite"}
+                        {invitingId === u.email ? "Inviting…" : "Invite"}
                       </Button>
                     </li>
                   ))}
@@ -789,6 +791,7 @@ export default function TravelListDetail() {
       {listData?.collaborators && listData?.collaborators.length > 0 && (
         <Members
           isThisListMe={isThisListMe}
+          currentUserId={user.id}
           collaborators={(listData?.collaborators || []).map((user: any) => ({
             ...user,
             id: user._id || user.id,
@@ -797,23 +800,22 @@ export default function TravelListDetail() {
           onSearchUsers={async (q) => {
             const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
             if (response && response.data) {
-              return response.data.map((user: any) => ({
-                ...user,
-                id: user._id || user.id,
-                avatarUrl: user.profileImage?.url
+              return response.data.map((u: any) => ({
+                id: u._id || u.id,
+                email: u.email,
+                fullName: u.fullName,
+                avatarUrl: u.profileImage?.url,
+                collaboratorsRequest: u.collaboratorsRequest || [],   // <-- keep it
               }));
             }
             return [];
           }}
-          onInvite={async (userId) => {
-            const response = await controller.post(`${endpoints.lists}/${listId}/invite`, {
-              userId,
-            });
-            if (!response || !response.success) {
-              throw new Error("Invite failed");
-            }
+          onInvite={async (collaboratorEmail) => {
+            await controller.post(`${endpoints.lists}/${listId}/invite`, { collaboratorEmail });
           }}
+
         />
+
       )}
 
 

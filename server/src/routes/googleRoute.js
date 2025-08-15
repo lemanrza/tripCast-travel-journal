@@ -60,7 +60,7 @@ googleRouter.get(
                     createdAt: populatedUser.createdAt,
                     updatedAt: populatedUser.updatedAt,
                 },
-                "15m"
+                "24h"
             );
 
             res.redirect(`${config.CLIENT_URL}/auth/success/${accessToken}`);

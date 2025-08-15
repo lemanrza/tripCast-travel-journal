@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Camera, Edit, MapPin, Calendar, Globe, Instagram, Twitter, Plus, Mail, Phone } from "lucide-react";
+import { Camera, Edit, MapPin, Calendar, Globe, Instagram, Twitter, Plus} from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import controller from "@/services/commonRequest";
 import type { User } from "@/types/userType";
 import endpoints from "@/services/api";
+import { enqueueSnackbar } from "notistack";
 
 
 const formatSince = (iso: string | null | undefined): string => {
@@ -69,6 +69,69 @@ export default function ProfilePage() {
     e?.preventDefault?.();
     setOpenEdit(false);
   }
+  type CollabReq = {
+    _id: string;
+    fromUser: { fullName: string; email: string; profileImage?: { url?: string } };
+    list: { _id: string; title: string; coverImage?: { url?: string } };
+  };
+
+  const [reqs, setReqs] = useState<CollabReq[]>([]);
+  const [reqLoading, setReqLoading] = useState(false);
+  const [reqErr, setReqErr] = useState<string | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  async function loadCollabReqs() {
+    try {
+      setReqLoading(true);
+      setReqErr(null);
+      const resp = await controller.getAll(`${endpoints.lists}/me/collab-requests`);
+      const data = resp?.data ?? [];
+      setReqs(data);
+    } catch (e: any) {
+      setReqErr(e?.message || "Failed to load requests");
+    } finally {
+      setReqLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCollabReqs();
+  }, []);
+
+  async function acceptReq(requestId: string) {
+    try {
+      setActingId(requestId);
+      const resp = await controller.post(
+        `${endpoints.lists}/me/collab-requests/${requestId}/accept`,
+        {}
+      );
+      if (!resp || resp.error) throw new Error(resp?.message || "Failed to accept");
+      setReqs((r) => r.filter((x) => x._id !== requestId));
+      enqueueSnackbar("Joined the list 🎉", { variant: "success" });
+    } catch (e: any) {
+      enqueueSnackbar(e?.message || "Failed to accept", { variant: "error" });
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function rejectReq(requestId: string) {
+    try {
+      setActingId(requestId);
+      const resp = await controller.post(
+        `${endpoints.lists}/me/collab-requests/${requestId}/reject`,
+        {}
+      );
+      if (!resp || resp.error) throw new Error(resp?.message || "Failed to reject");
+      setReqs((r) => r.filter((x) => x._id !== requestId));
+      enqueueSnackbar("Invite dismissed", { variant: "default" });
+    } catch (e: any) {
+      enqueueSnackbar(e?.message || "Failed to reject", { variant: "error" });
+    } finally {
+      setActingId(null);
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -220,55 +283,74 @@ export default function ProfilePage() {
 
             {/* Settings */}
             <TabsContent value="settings" className="mt-4">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Account Settings */}
-                <Card className="border-none shadow-sm">
-                  <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="email" className="inline-flex items-center gap-2"><Mail className="h-4 w-4" /> Email Address</Label>
-                      <Input id="email" value={user?.email} onChange={(e) => setUser({ ...user, email: e.target.value })} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="phone" className="inline-flex items-center gap-2"><Phone className="h-4 w-4" /> Phone Number</Label>
-                      <Input id="phone" value={user?.phone || ''} onChange={(e) => setUser({ ...user, phone: e.target.value })} />
-                    </div>
-                  </CardContent>
-                </Card>
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle>Collaboration Requests</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {reqLoading && (
+                    <div className="text-sm text-muted-foreground">Loading requests…</div>
+                  )}
 
-                {/* Privacy Settings */}
-                <Card className="border-none shadow-sm">
-                  <CardHeader>
-                    <CardTitle>Privacy Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <div className="font-medium">Public Profile</div>
-                        <div className="text-sm text-muted-foreground">Allow others to find your profile</div>
-                      </div>
-                      <Switch checked={user?.isPublic || false} onCheckedChange={(v) => setUser({ ...user, isPublic: v })} />
+                  {reqErr && (
+                    <div className="text-sm text-destructive">{reqErr}</div>
+                  )}
+
+                  {!reqLoading && !reqErr && reqs.length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      No pending collaboration requests.
                     </div>
-                    <div className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <div className="font-medium">Email Notifications</div>
-                        <div className="text-sm text-muted-foreground">Get updates about your lists</div>
-                      </div>
-                      <Switch checked={user?.emailNotifs} onCheckedChange={(v) => setUser({ ...user, emailNotifs: v })} />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <div className="font-medium">Show Travel Stats</div>
-                        <div className="text-sm text-muted-foreground">Display counts on your public profile</div>
-                      </div>
-                      <Switch checked={user?.showStats} onCheckedChange={(v) => setUser({ ...user, showStats: v })} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  )}
+
+                  <ul className="space-y-2">
+                    {reqs.map((r) => (
+                      <li
+                        key={r._id}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 overflow-hidden rounded-full bg-muted">
+                            {r.fromUser?.profileImage?.url ? (
+                              <img
+                                src={r.fromUser.profileImage.url}
+                                alt={r.fromUser.fullName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div>
+                            <div className="font-medium">{r.list?.title ?? "Untitled list"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Owner: {r.fromUser?.fullName ?? "Unknown"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => acceptReq(r._id)}
+                            disabled={actingId === r._id}
+                          >
+                            {actingId === r._id ? "Accepting…" : "Accept"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => rejectReq(r._id)}
+                            disabled={actingId === r._id}
+                          >
+                            {actingId === r._id ? "Rejecting…" : "Reject"}
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             </TabsContent>
+
           </Tabs>
         </div>
       </div>
