@@ -40,11 +40,32 @@ async function update(endpoint: string, id: string = "", data: any) {
     const url = id ? `${endpoint}/${id}` : endpoint;
     const response = await instance.put(url, data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error updating data at ${endpoint}`, error);
+    if (error?.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data); 
+    }
     throw error;
   }
 }
+
+//update user function
+async function updateUser(endpoint: string, id: string = "", data: any) {
+  try {
+    const url = id ? `${endpoint}/${id}` : endpoint;
+    const response = await instance.patch(url, data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error updating data at ${endpoint}`, error);
+    if (error?.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data); 
+    }
+    throw error;
+  }
+}
+
 
 // Create a new data
 async function post(endpoint: string, data: any, headers?: object) {
@@ -66,6 +87,7 @@ const controller = {
   getOne,
   deleteOne,
   update,
+  updateUser,
   post,
 };
 

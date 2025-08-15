@@ -9,7 +9,9 @@ const {
     verifyUserEmail,
     forgotPassword,
     resetPassword,
-    unlockAccount
+    unlockAccount,
+    updateUserById,
+    changeUserPassword
 } = require("../controllers/userController.js");
 const userRouter = express.Router();
 
@@ -22,5 +24,7 @@ userRouter.post("/forgot-password", forgotPassword);
 userRouter.post("/reset-password", resetPassword);
 userRouter.get("/unlock-account", unlockAccount);
 userRouter.get("/user/:id", getUserById);
+userRouter.patch("/user/:id", updateUserById);
+userRouter.patch("/user/:id/password", changeUserPassword);
 
 module.exports = userRouter;

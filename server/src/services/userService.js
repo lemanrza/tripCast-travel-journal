@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const UserModel = require("../models/userModel.js");
-const JournalEntryModel = require("../models/journalEntryModel.js"); 
-const TravelListModel = require("../models/travelListModel.js"); 
+const JournalEntryModel = require("../models/journalEntryModel.js");
+const TravelListModel = require("../models/travelListModel.js");
 const DestinationModel = require("../models/destinationModel.js");
 const {
     generateAccessToken,
@@ -108,7 +108,7 @@ exports.login = async (email, password) => {
         throw new Error(
             "This account has been created with Google, please try sign in with Google"
         );
-    } 
+    }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
@@ -146,7 +146,7 @@ exports.login = async (email, password) => {
     }
 
     user.loginAttempts = 0;
-    user.lockUntil = null; 
+    user.lockUntil = null;
     user.isBanned = false;
     user.lastLogin = new Date();
 
@@ -272,4 +272,55 @@ exports.resetPass = async (newPassword, email) => {
     user.password = hashedPassword;
     await user.save();
     return user;
+};
+
+exports.updateOne = async (id, payload) => {
+    const allowed = [
+        "fullName",
+        "bio",
+        "location",
+        "socials",
+        "profileImage",     
+        "emailNotifs",
+        "showStats",
+        "isPublic",
+        "phone",
+        "phoneNumber",
+    ];
+
+    const update = {};
+    for (const k of allowed) {
+        if (Object.prototype.hasOwnProperty.call(payload, k)) {
+            update[k] = payload[k];
+        }
+    }
+
+    const updated = await UserModel.findByIdAndUpdate(id, update, {
+        new: true,
+        runValidators: true,
+    }).select("-password");
+
+    return updated;
+};
+
+exports.changePassword = async (id, oldPassword, newPassword) => {
+    const user = await UserModel.findById(id);
+    if (!user) throw new Error("User not found");
+
+    if (user.provider === "google") {
+        throw new Error("This account was created with Google; password change is unavailable.");
+    }
+
+    const ok = await bcrypt.compare(oldPassword, user.password);
+    if (!ok) throw new Error("Current password is incorrect");
+
+    if (!newPassword || newPassword.length < 6) {
+        throw new Error("New password must be at least 6 characters");
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.password = hash;
+    await user.save();
+
+    return true;
 };
