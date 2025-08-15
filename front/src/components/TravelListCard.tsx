@@ -11,7 +11,7 @@ type TravelListCardProps = {
   user: User;
   total: number;
   tags: string[];
-  coverImage: string;
+  coverImage: string; 
   visibility: "Public" | "Private";
   created: string;
   collaborators: number;

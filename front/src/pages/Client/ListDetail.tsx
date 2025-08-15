@@ -19,6 +19,11 @@ import { useSelector } from "react-redux";
 import type { List } from "@/types/ListType";
 import type { Destination } from "@/types/DestinationType";
 import type { JournalDetail } from "@/types/JournalType";
+import toYMD from "@/utils/toYMD";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 export default function TravelListDetail() {
@@ -58,22 +63,140 @@ export default function TravelListDetail() {
     notes: "",
   });
 
-  function toYMD(d?: string | Date | null) {
-    if (!d) return "";
-    const dt = typeof d === "string" ? new Date(d) : d;
-    if (Number.isNaN(dt.getTime())) return "";
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth() + 1).padStart(2, "0");
-    const day = String(dt.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+  // Settings modals
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [editListOpen, setEditListOpen] = useState(false);
+
+  // Invite dialog state
+  const [inviteQ, setInviteQ] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteResults, setInviteResults] = useState<Array<{ id: string; email: string; fullName: string; avatarUrl?: string }>>([]);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+
+  // Edit List form (local-only)
+  const [listForm, setListForm] = useState({
+    title: "",
+    description: "",
+    tagsText: "",
+    isPublic: false,
+    coverFile: null as File | null,
+    coverPreview: "",
+  });
+
+  // Prefill edit form when opening
+  useEffect(() => {
+    if (!editListOpen || !listData) return;
+    setListForm({
+      title: listData.title ?? "",
+      description: listData.description ?? "",
+      tagsText: (listData.tags ?? []).join(", "),
+      isPublic: !!listData.isPublic,
+      coverFile: null,
+      coverPreview: listData.coverImage || "",
+    });
+  }, [editListOpen, listData]);
+
+  function handleCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setListForm((s) => ({ ...s, coverFile: file, coverPreview: url }));
   }
+
+  // Invite search (same backend you already use)
+  useEffect(() => {
+    if (!inviteOpen) return;
+    if (!inviteQ.trim()) {
+      setInviteResults([]);
+      setInviteError(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setInviteLoading(true);
+      setInviteError(null);
+      try {
+        const resp = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(inviteQ.trim())}`);
+        const data = (resp?.data ?? []).map((u: any) => ({
+          id: u._id || u.id,
+          email: u.email,
+          fullName: u.fullName,
+          avatarUrl: u.profileImage?.url,
+        }));
+        setInviteResults(data);
+      } catch (e: any) {
+        setInviteError(e?.message ?? "Search failed");
+      } finally {
+        setInviteLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [inviteQ, inviteOpen]);
+
+  async function handleInviteUser(userId: string) {
+    try {
+      setInvitingId(userId);
+      const resp = await controller.post(`${endpoints.lists}/${listId}/invite`, { userId });
+      if (!resp || !resp.success) throw new Error(resp?.message || "Invite failed");
+      setInviteResults((r) => r.filter((u) => u.id !== userId));
+      enqueueSnackbar("Invite sent", { variant: "success" });
+    } catch (e: any) {
+      setInviteError(e?.message ?? "Invite failed");
+    } finally {
+      setInvitingId(null);
+    }
+  }
+
+  async function handleEditList() {
+    if (!listId) return;
+    try {
+      // Upload new cover if selected
+      let newCover: string | null = null;
+      if (listForm.coverFile) {
+        const fd = new FormData();
+        fd.append("image", listForm.coverFile);
+        const uploadRes = await controller.post(`${endpoints.upload}/image`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (!uploadRes?.success || !uploadRes.data?.url) {
+          throw new Error("Cover image upload failed");
+        }
+        newCover = uploadRes.data.url;
+      }
+
+      const tags = listForm.tagsText.split(",").map(t => t.trim()).filter(Boolean);
+
+      // Only fields in your List type (plus optional coverImage)
+      const patch: Partial<List> = {
+        title: listForm.title.trim(),
+        description: listForm.description.trim(),
+        tags,
+        isPublic: !!listForm.isPublic,
+        ...(newCover ? { coverImage: newCover } : {}),
+      };
+
+      const resp = await controller.update(endpoints.lists, String(listId), patch);
+      if (!resp || !resp.data) throw new Error(resp?.message || "Failed to update list");
+
+      setListData(prev => (prev ? { ...prev, ...resp.data } : prev));
+
+
+      enqueueSnackbar(resp.message || "List updated", { variant: "success" });
+      setEditListOpen(false);
+    } catch (err: any) {
+      console.error("Edit list error:", err);
+      enqueueSnackbar(err?.message || "Failed to update list", { variant: "error" });
+    }
+  }
+
 
   function openEdit(dest: Destination) {
     setEditTarget(dest);
     setEditForm({
       imageFile: null,
-      imageUrl: dest.image?.url || "",
-      originalPublicId: dest.image?.public_id,
+      imageUrl: dest.image.url || "",
+      originalPublicId: "", // keep for type, but unused
       name: dest.name || "",
       country: dest.country || "",
       status: (dest.status as any) || "",
@@ -495,11 +618,185 @@ export default function TravelListDetail() {
             <Button variant="secondary" className="bg-white/90 text-gray-900"><MessageSquare className="mr-2 h-4 w-4" /> Chat</Button>
             <Button variant="secondary" className="bg-white/90 text-gray-900"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
             {isThisListMe && (
-              <Button variant="secondary" className="bg-white/90 text-gray-900"><Settings className="mr-2 h-4 w-4" /> Settings</Button>
+              <Button
+                variant="secondary"
+                className="bg-white/90 text-gray-900"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings className="mr-2 h-4 w-4" /> Settings
+              </Button>
             )}
+
           </div>
         </div>
       </div>
+      {/* SETTINGS */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>List Settings</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Button
+              variant="outline"
+              onClick={() => { setSettingsOpen(false); setInviteOpen(true); }}
+            >
+              Invite collaborators
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setSettingsOpen(false); setEditListOpen(true); }}
+            >
+              Edit list
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* INVITE COLLABORATORS */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Invite collaborators</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Input
+              autoFocus
+              placeholder="Search by email or name…"
+              value={inviteQ}
+              onChange={(e) => setInviteQ(e.target.value)}
+            />
+            <Separator />
+            <ScrollArea className="h-64 rounded-md border">
+              <div className="p-2">
+                {inviteLoading && <p className="p-2 text-sm text-muted-foreground">Searching…</p>}
+                {inviteError && <p className="p-2 text-sm text-destructive">{inviteError}</p>}
+                {!inviteLoading && !inviteError && inviteQ.trim() && inviteResults.length === 0 && (
+                  <p className="p-2 text-sm text-muted-foreground">No users found</p>
+                )}
+                <ul className="space-y-1">
+                  {inviteResults.map((u) => (
+                    <li key={u.id} className="flex items-center justify-between rounded-md p-2 hover:bg-muted">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={u.avatarUrl} />
+                          <AvatarFallback>{(u.fullName || "").split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="leading-tight">
+                          <div className="text-sm font-medium">{u.fullName}</div>
+                          <div className="text-xs text-muted-foreground">{u.email}</div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleInviteUser(u.id)}
+                        disabled={invitingId === u.id}
+                      >
+                        {invitingId === u.id ? "Inviting…" : "Invite"}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </ScrollArea>
+
+            <DialogFooter className="sm:justify-start">
+              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT LIST */}
+      <Dialog open={editListOpen} onOpenChange={setEditListOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit List</DialogTitle>
+            <DialogDescription>Update your list’s details.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Cover */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Cover</p>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                  {listForm.coverPreview ? (
+                    <img src={listForm.coverPreview} alt="Cover preview" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-muted-foreground text-xs">No cover</span>
+                  )}
+                </div>
+                <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                  <span>Upload new</span>
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleCoverFileChange} />
+                </label>
+              </div>
+            </div>
+
+            {/* Basics */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Title *</p>
+                <input
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={listForm.title}
+                  onChange={(e) => setListForm((s) => ({ ...s, title: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Tags (comma separated)</p>
+                <input
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  placeholder="e.g. culture, history, food"
+                  value={listForm.tagsText}
+                  onChange={(e) => setListForm((s) => ({ ...s, tagsText: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Visibility */}
+            <div className="flex items-center gap-3">
+              <input
+                id="isPublic"
+                type="checkbox"
+                checked={listForm.isPublic}
+                onChange={(e) => setListForm((s) => ({ ...s, isPublic: e.target.checked }))}
+              />
+              <label htmlFor="isPublic" className="text-sm">Make this list public</label>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Description</p>
+              <textarea
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                rows={4}
+                value={listForm.description}
+                onChange={(e) => setListForm((s) => ({ ...s, description: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setEditListOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleEditList}
+              disabled={!listForm.title.trim()}
+            >
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
