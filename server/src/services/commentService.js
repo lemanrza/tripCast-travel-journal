@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 
 exports.getCommentsByJournal = async (journalId, userId) => {
     try {
-        // First verify the journal exists and user has access
         const journal = await JournalEntryModel.findById(journalId)
             .populate("destination");
 
@@ -14,7 +13,6 @@ exports.getCommentsByJournal = async (journalId, userId) => {
             throw new Error("Journal entry not found");
         }
 
-        // Check access permissions
         const destination = await DestinationModel.findById(journal.destination._id);
         const list = await TravelListModel.findById(destination.listId);
 
@@ -32,7 +30,6 @@ exports.getCommentsByJournal = async (journalId, userId) => {
             throw new Error("You don't have access to this journal entry");
         }
 
-        // Get comments for this journal
         const comments = await CommentModel.find({ journalEntry: journalId })
             .populate("authorId", "fullName profileImage")
             .sort({ createdAt: -1 });
@@ -61,7 +58,6 @@ exports.createComment = async (journalId, payload, userId) => {
             };
         }
 
-        // Verify the journal exists and user has access
         const journal = await JournalEntryModel.findById(journalId)
             .populate("destination");
 
@@ -72,7 +68,6 @@ exports.createComment = async (journalId, payload, userId) => {
             };
         }
 
-        // Check access permissions
         const destination = await DestinationModel.findById(journal.destination._id);
         const list = await TravelListModel.findById(destination.listId);
 
@@ -96,7 +91,6 @@ exports.createComment = async (journalId, payload, userId) => {
             };
         }
 
-        // Create the comment
         const commentData = {
             content: content.trim(),
             authorId: userId,
@@ -104,10 +98,6 @@ exports.createComment = async (journalId, payload, userId) => {
         };
 
         const comment = await CommentModel.create(commentData);
-        
-        // Add the comment ID to the journal entry's comments array
-        console.log("Adding comment to journal entry:", journalId);
-        console.log("Comment ID to add:", comment._id);
         
         await JournalEntryModel.findByIdAndUpdate(
             journalId,

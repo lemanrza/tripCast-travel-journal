@@ -8,6 +8,7 @@ const {
     updateJournal,
     deleteJournal,
     toggleJournalLike,
+    searchJournalsController,
 } = require("../controllers/journalController.js");
 const {
     getCommentsByJournal,
@@ -23,6 +24,7 @@ journalRouter.use(authenticateToken);
 
 // Journal routes
 journalRouter.get("/", getAllJournals);
+journalRouter.get("/search", searchJournalsController);
 journalRouter.get("/list/:listId", getJournalsByListId);
 journalRouter.get("/:id", getJournalById);
 journalRouter.post("/", createJournal);

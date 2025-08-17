@@ -1,9 +1,35 @@
 const JournalEntryModel = require("../models/journalEntryModel.js");
 const DestinationModel = require("../models/destinationModel.js");
 const TravelListModel = require("../models/travelListModel.js");
+const { buildRegexQuery } = require("../utils/regex.js");
+
+exports.searchJournalsService = async (opts) => {
+    const {
+        q,
+        page = 1,
+        limit = 10,
+        filter = {},
+        select = "title content public destination createdAt author",
+        withDestinationName = true,
+    } = opts;
+
+    const query = { ...filter, ...buildRegexQuery(q, ["title", "content"]) };
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+    const safePage = Math.max(page, 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    let qy = JournalEntryModel.find(query).select(select).skip(skip).limit(safeLimit).sort({ createdAt: -1 });
+
+    if (withDestinationName) {
+        qy = qy.populate({ path: "destination", select: "name" });
+    }
+
+    const [items, total] = await Promise.all([qy.lean().exec(), JournalEntryModel.countDocuments(query)]);
+
+    return { data: items, total, page: safePage, limit: safeLimit };
+}
 
 exports.getAll = async (userId) => {
-    // Get journals from lists the user has access to
     const userLists = await TravelListModel.find({
         $or: [
             { owner: userId },
@@ -14,7 +40,6 @@ exports.getAll = async (userId) => {
 
     const listIds = userLists.map(list => list._id);
 
-    // Get destinations from those lists
     const destinations = await DestinationModel.find({ listId: { $in: listIds } }).select('_id');
     const destinationIds = destinations.map(dest => dest._id);
 
@@ -53,7 +78,6 @@ exports.getOne = async (journalId, userId) => {
 };
 
 exports.getByListId = async (listId, userId) => {
-    // Check if user has access to the list
     const list = await TravelListModel.findById(listId);
     if (!list) {
         throw new Error("Travel list not found");
@@ -67,7 +91,6 @@ exports.getByListId = async (listId, userId) => {
         throw new Error("You don't have access to this travel list");
     }
 
-    // Get destinations from this list
     const destinations = await DestinationModel.find({ listId: listId }).select('_id');
     const destinationIds = destinations.map(dest => dest._id);
 
@@ -139,7 +162,6 @@ exports.create = async (payload, userId) => {
     }
 };
 
-
 exports.update = async (journalId, payload, userId) => {
     try {
         const { title, content, photos, public: isPublic } = payload;
@@ -197,7 +219,6 @@ exports.delete = async (journalId, userId) => {
             };
         }
 
-        // Check if user is the author or has admin access to the list
         const destination = await DestinationModel.findById(journal.destination);
         const list = await TravelListModel.findById(destination.listId);
 

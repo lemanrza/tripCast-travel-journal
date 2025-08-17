@@ -303,7 +303,6 @@ exports.changeUserPassword = async (req, res) => {
     const { id } = req.params;
     const { oldPassword, newPassword } = req.body;
 
-    // Optional: only allow the authenticated user to change their own password
     if (req.user && req.user.id && req.user.id.toString() !== id.toString()) {
       return res.status(403).json({ message: "Forbidden" });
     }

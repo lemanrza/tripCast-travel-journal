@@ -93,11 +93,9 @@ exports.login = async (email, password) => {
 
     if (user.lockUntil) {
         if (user.lockUntil > new Date()) {
-            // Account is still locked
             const unlockTime = new Date(user.lockUntil).toLocaleString();
             throw new Error(`Account is locked. Try again after ${unlockTime}`);
         } else {
-            // Lock time has expired, automatically unlock the account
             user.loginAttempts = 0;
             user.lockUntil = null;
             await user.save();

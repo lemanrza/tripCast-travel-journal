@@ -6,9 +6,26 @@ const {
     create,
     update,
     delete: deleteDestination,
-    updateStatus
+    updateStatus,
+    searchDestinationsService
 } = require("../services/destinationService.js");
 const formatMongoData = require("../utils/formatMongoData.js");
+
+exports.searchDestinationsController = async (req, res) => {
+    try {
+        const q = String(req.query.q || "");
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+
+        const filter = {};
+
+        const result = await searchDestinationsService({ q, page, limit, filter });
+        res.json(result);
+    } catch (err) {
+        console.error("searchDestinationsController error:", err);
+        res.status(500).json({ message: "Search destinations failed" });
+    }
+}
 
 exports.getAllDestinations = async (req, res, next) => {
     try {
