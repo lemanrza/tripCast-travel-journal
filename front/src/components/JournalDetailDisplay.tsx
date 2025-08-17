@@ -64,7 +64,6 @@ function JournalDetailDisplay({
         el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
     };
 
-    // Fix: likedByMe must be defined before use
     const likedByMe = Array.isArray(journal.likes) && user?._id
         ? journal.likes.some((l: any) => String(l.userId?._id || l.userId) === String(user._id))
         : false;
@@ -103,10 +102,9 @@ function JournalDetailDisplay({
                             className="flex w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden no-scrollbar"
                         >
                             {journal.photos.map((photo, i) => {
-                                // Support both string and object with url
                                 const src = typeof photo === 'string' ? photo : photo?.url;
                                 return (
-                                    <div key={i} className="relative h-150 w-full object-cover flex-none snap-center">
+                                    <div key={i} className="relative h-120 w-full object-cover flex-none snap-center">
                                         <img
                                             src={src}
                                             alt={`photo-${i + 1}`}
