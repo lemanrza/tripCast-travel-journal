@@ -26,5 +26,5 @@ userRouter.get("/unlock-account", unlockAccount);
 userRouter.get("/user/:id", getUserById);
 userRouter.patch("/user/:id", updateUserById);
 userRouter.patch("/user/:id/password", changeUserPassword);
-
+userRouter.put("/user/:id/password", changeUserPassword);
 module.exports = userRouter;

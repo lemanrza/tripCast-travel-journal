@@ -298,18 +298,21 @@ exports.updateUserById = async (req, res, next) => {
     }
 };
 
-exports.changeUserPassword = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { oldPassword, newPassword } = req.body;
+exports.changeUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { oldPassword, newPassword } = req.body;
 
-        if (!oldPassword || !newPassword) {
-            return res.status(400).json({ message: "oldPassword and newPassword are required" });
-        }
-
-        await changePassword(id, oldPassword, newPassword);
-        res.status(200).json({ message: "password updated successfully!" });
-    } catch (error) {
-        next(error);
+    // Optional: only allow the authenticated user to change their own password
+    if (req.user && req.user.id && req.user.id.toString() !== id.toString()) {
+      return res.status(403).json({ message: "Forbidden" });
     }
+
+    await changePassword(id, oldPassword, newPassword);
+    return res.status(200).json({ message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("changePassword error:", error);
+    const status = error.statusCode || 400;
+    return res.status(status).json({ message: error.message || "Bad request" });
+  }
 };

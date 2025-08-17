@@ -217,9 +217,7 @@ exports.unlockAcc = async (token) => {
             throw new Error("User not found");
         }
 
-        // Check if account is actually locked
         if (user.lockUntil && user.lockUntil > new Date()) {
-            // Manually unlock the account
             user.loginAttempts = 0;
             user.lockUntil = null;
             await user.save();
@@ -228,7 +226,6 @@ exports.unlockAcc = async (token) => {
                 message: "Account has been unlocked successfully",
             };
         } else if (user.lockUntil && user.lockUntil <= new Date()) {
-            // Account lock has already expired, just reset the fields
             user.loginAttempts = 0;
             user.lockUntil = null;
             await user.save();
@@ -280,7 +277,7 @@ exports.updateOne = async (id, payload) => {
         "bio",
         "location",
         "socials",
-        "profileImage",     
+        "profileImage",
         "emailNotifs",
         "showStats",
         "isPublic",
@@ -304,23 +301,39 @@ exports.updateOne = async (id, payload) => {
 };
 
 exports.changePassword = async (id, oldPassword, newPassword) => {
-    const user = await UserModel.findById(id);
-    if (!user) throw new Error("User not found");
+    const user = await UserModel.findById(id).select("+password");
+    if (!user) {
+        const e = new Error("User not found");
+        e.statusCode = 404;
+        throw e;
+    }
 
     if (user.provider === "google") {
-        throw new Error("This account was created with Google; password change is unavailable.");
+        const e = new Error("This account uses Google sign-in");
+        e.statusCode = 400;
+        throw e;
+    }
+
+    if (!oldPassword || !newPassword) {
+        const e = new Error("oldPassword and newPassword are required");
+        e.statusCode = 400;
+        throw e;
+    }
+
+    if (oldPassword === newPassword) {
+        const e = new Error("New password must differ from current");
+        e.statusCode = 400;
+        throw e;
     }
 
     const ok = await bcrypt.compare(oldPassword, user.password);
-    if (!ok) throw new Error("Current password is incorrect");
-
-    if (!newPassword || newPassword.length < 6) {
-        throw new Error("New password must be at least 6 characters");
+    if (!ok) {
+        const e = new Error("Current password is incorrect");
+        e.statusCode = 400;
+        throw e;
     }
 
-    const hash = await bcrypt.hash(newPassword, 10);
-    user.password = hash;
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-
     return true;
 };

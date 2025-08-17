@@ -180,7 +180,8 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Profile header */}
-      <Card className="mx-auto max-w-5xl mt-20 border-none shadow-sm">
+<div className="pt-6">
+      <Card className="mx-auto p-4 max-w-5xl border-none shadow-sm">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start">
             {/* Avatar + change */}
@@ -367,6 +368,7 @@ export default function ProfilePage() {
           onUserUpdated={applyPatch}
         />
       </Card>
+</div>
 
       {/* Tabs */}
       <div className="mx-auto mt-6 max-w-5xl">

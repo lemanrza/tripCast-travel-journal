@@ -20,10 +20,7 @@ import type { List } from "@/types/ListType";
 import type { Destination } from "@/types/DestinationType";
 import type { JournalDetail } from "@/types/JournalType";
 import toYMD from "@/utils/toYMD";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import InviteUser from "@/components/ListDetail/InviteUser";
 
 
 export default function TravelListDetail() {
@@ -66,11 +63,6 @@ export default function TravelListDetail() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editListOpen, setEditListOpen] = useState(false);
 
-  const [inviteQ, setInviteQ] = useState("");
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteResults, setInviteResults] = useState<Array<{ id: string; email: string; fullName: string; avatarUrl?: string }>>([]);
-  const [invitingId, setInvitingId] = useState<string | null>(null);
 
   const [listForm, setListForm] = useState({
     title: "",
@@ -100,50 +92,6 @@ export default function TravelListDetail() {
     setListForm((s) => ({ ...s, coverFile: file, coverPreview: url }));
   }
 
-  useEffect(() => {
-    if (!inviteOpen) return;
-    if (!inviteQ.trim()) {
-      setInviteResults([]);
-      setInviteError(null);
-      return;
-    }
-    const t = setTimeout(async () => {
-      setInviteLoading(true);
-      setInviteError(null);
-      try {
-        const resp = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(inviteQ.trim())}`);
-        const data = (resp?.data ?? []).map((u: any) => ({
-          id: u._id || u.id,
-          email: u.email,
-          fullName: u.fullName,
-          avatarUrl: u.profileImage?.url,
-        }));
-        setInviteResults(data);
-      } catch (e: any) {
-        setInviteError(e?.message ?? "Search failed");
-      } finally {
-        setInviteLoading(false);
-      }
-    }, 350);
-    return () => clearTimeout(t);
-  }, [inviteQ, inviteOpen]);
-
-  async function handleInviteUser(email: string) {
-    try {
-      setInvitingId(email);
-      const resp = await controller.post(`${endpoints.lists}/${listId}/invite`, {
-        collaboratorEmail: email,
-      });
-      if (!resp || !resp.success) throw new Error(resp?.message || "Invite failed");
-      setInviteResults((r) => r.filter((x) => x.email !== email));
-      enqueueSnackbar("Invite sent", { variant: "success" });
-    } catch (e: any) {
-      setInviteError(e?.message ?? "Invite failed");
-    } finally {
-      setInvitingId(null);
-    }
-  }
-
   async function handleEditList() {
     if (!listId) return;
     try {
@@ -162,7 +110,6 @@ export default function TravelListDetail() {
 
       const tags = listForm.tagsText.split(",").map(t => t.trim()).filter(Boolean);
 
-      // Only fields in your List type (plus optional coverImage)
       const patch: Partial<List> = {
         title: listForm.title.trim(),
         description: listForm.description.trim(),
@@ -184,7 +131,6 @@ export default function TravelListDetail() {
       enqueueSnackbar(err?.message || "Failed to update list", { variant: "error" });
     }
   }
-
 
   function openEdit(dest: Destination) {
     setEditTarget(dest);
@@ -215,7 +161,6 @@ export default function TravelListDetail() {
       return { ...s, status: next };
     });
   }
-
 
   function resetAddForm() {
     setAddForm({
@@ -583,7 +528,7 @@ export default function TravelListDetail() {
           <img
             src={listData.coverImage}
             alt={listTitle}
-            className="aspect-[16/5] w-full object-cover"
+            className="h-180 w-full object-cover"
           />
         ) : (
           <div className="aspect-[16/5] w-full bg-muted" />
@@ -643,54 +588,32 @@ export default function TravelListDetail() {
             <DialogTitle>Invite collaborators</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <Input
-              autoFocus
-              placeholder="Search by email or name…"
-              value={inviteQ}
-              onChange={(e) => setInviteQ(e.target.value)}
-            />
-            <Separator />
-            <ScrollArea className="h-64 rounded-md border">
-              <div className="p-2">
-                {inviteLoading && <p className="p-2 text-sm text-muted-foreground">Searching…</p>}
-                {inviteError && <p className="p-2 text-sm text-destructive">{inviteError}</p>}
-                {!inviteLoading && !inviteError && inviteQ.trim() && inviteResults.length === 0 && (
-                  <p className="p-2 text-sm text-muted-foreground">No users found</p>
-                )}
-                <ul className="space-y-1">
-                  {inviteResults.map((u) => (
-                    <li key={u.id} className="flex items-center justify-between rounded-md p-2 hover:bg-muted">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={u.avatarUrl} />
-                          <AvatarFallback>{(u.fullName || "").split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="leading-tight">
-                          <div className="text-sm font-medium">{u.fullName}</div>
-                          <div className="text-xs text-muted-foreground">{u.email}</div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleInviteUser(u.email)}
-                        disabled={invitingId === u.email}
-                      >
-                        {invitingId === u.email ? "Inviting…" : "Invite"}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </ScrollArea>
+          <InviteUser
+            currentUserId={user.id}
+            collaborators={(listData?.collaborators || []).map((user: any) => ({
+              ...user,
+              id: user._id || user.id,
+              avatarUrl: user.profileImage?.url
+            }))}
+            onSearchUsers={async (q) => {
+              const response = await controller.getAll(`${endpoints.users}/search?q=${encodeURIComponent(q)}`);
+              if (response && response.data) {
+                return response.data.map((u: any) => ({
+                  id: u._id || u.id,
+                  email: u.email,
+                  fullName: u.fullName,
+                  avatarUrl: u.profileImage?.url,
+                  collaboratorsRequest: u.collaboratorsRequest || [],
+                }));
+              }
+              return [];
+            }}
+            onInvite={async (collaboratorEmail) => {
+              await controller.post(`${endpoints.lists}/${listId}/invite`, { collaboratorEmail });
+            }}
 
-            <DialogFooter className="sm:justify-start">
-              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </div>
+          />
+
         </DialogContent>
       </Dialog>
 
@@ -805,7 +728,7 @@ export default function TravelListDetail() {
                 email: u.email,
                 fullName: u.fullName,
                 avatarUrl: u.profileImage?.url,
-                collaboratorsRequest: u.collaboratorsRequest || [],   
+                collaboratorsRequest: u.collaboratorsRequest || [],
               }));
             }
             return [];
