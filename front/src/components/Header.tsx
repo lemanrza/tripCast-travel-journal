@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"; // use your shadcn wrapper
+} from "@/components/ui/dropdown-menu"; 
 import { useSelector } from "react-redux";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
@@ -17,7 +17,7 @@ type SearchResult = {
   id: string;
   title: string;
   subtitle?: string;
-  path: string;      // where to navigate
+  path: string;    
   group: "Pages" | "Lists" | "Journals" | "Destinations";
 };
 
@@ -34,7 +34,6 @@ export default function Header() {
   const user = useSelector((state: any) => state.user);
   const navigate = useNavigate();
 
-  // --- Search state ---
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,7 +46,6 @@ export default function Header() {
     window.location.href = "/";
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!wrapRef.current) return;
