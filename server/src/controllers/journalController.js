@@ -6,8 +6,27 @@ const {
     update,
     delete: deleteJournal,
     toggleLike,
+    searchJournalsService,
 } = require("../services/journalService.js");
 const formatMongoData = require("../utils/formatMongoData.js");
+
+exports.searchJournalsController = async (req, res) => {
+    try {
+        const q = String(req.query.q || "");
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+
+        const userId = (req)?.user?._id || (req)?.user?.id;
+        const filter = userId ? { $or: [{ author: userId }, { public: true }] } : { public: true };
+
+        const result = await searchJournalsService({ q, page, limit, filter });
+        res.json(result);
+    } catch (err) {
+        console.error("searchJournalsController error:", err);
+        res.status(500).json({ message: "Search journals failed" });
+    }
+}
+
 
 exports.getAllJournals = async (req, res, next) => {
     try {
@@ -27,15 +46,15 @@ exports.getJournalById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user._id;
-        
+
         const journal = await getOne(id, userId);
-        
+
         res.status(200).json({
             message: "Journal retrieved successfully!",
             data: formatMongoData(journal),
         });
     } catch (error) {
-        if (error.message === "Journal entry not found" || 
+        if (error.message === "Journal entry not found" ||
             error.message === "You don't have access to this journal entry" ||
             error.message === "Associated travel list not found") {
             res.status(404).json({
@@ -52,7 +71,7 @@ exports.getJournalsByListId = async (req, res, next) => {
     try {
         const { listId } = req.params;
         const userId = req.user._id;
-        
+
         const journals = await getByListId(listId, userId);
 
         res.status(200).json({
@@ -60,7 +79,7 @@ exports.getJournalsByListId = async (req, res, next) => {
             data: formatMongoData(journals),
         });
     } catch (error) {
-        if (error.message === "Travel list not found" || 
+        if (error.message === "Travel list not found" ||
             error.message === "You don't have access to this travel list") {
             res.status(404).json({
                 message: error.message,

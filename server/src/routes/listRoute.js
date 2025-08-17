@@ -13,7 +13,8 @@ const {
     removeDestinationFromList,
     getPendingCollabRequests,
     acceptCollabRequest,
-    rejectCollabRequest
+    rejectCollabRequest,
+    searchListsController
 } = require("../controllers/listController");
 const authenticateToken = require("../middleware/authenticateToken");
 
@@ -23,6 +24,7 @@ listRouter.use(authenticateToken);
 
 listRouter.get("/", getAllLists);
 listRouter.post("/", createList);
+listRouter.get("/search", searchListsController);
 listRouter.get("/my-lists", getUserOwnLists);
 listRouter.get("/collaborative", getUserCollaborativeLists);
 listRouter.get("/:id", getListById);

@@ -1,5 +1,29 @@
 const TravelListModel = require("../models/travelListModel.js");
 const UserModel = require("../models/userModel.js");
+const { buildRegexQuery } = require("../utils/regex.js");
+
+
+exports.searchListsService = async (opts) => {
+    const {
+        q,
+        page = 1,
+        limit = 10,
+        filter = {},
+        select = "title description tags isPublic owner coverImage createdAt",
+    } = opts;
+
+    const query = { ...filter, ...buildRegexQuery(q, ["title", "description", "tags"]) };
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+    const safePage = Math.max(page, 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [items, total] = await Promise.all([
+        TravelListModel.find(query).select(select).skip(skip).limit(safeLimit).sort({ createdAt: -1 }).lean().exec(),
+        TravelListModel.countDocuments(query),
+    ]);
+
+    return { data: items, total, page: safePage, limit: safeLimit };
+}
 
 exports.getAll = async () => {
     return await TravelListModel.find()
@@ -190,8 +214,6 @@ exports.delete = async (listId, userId) => {
         };
     }
 };
-
-
 
 exports.addDestination = async (listId, destinationId, userId) => {
     try {

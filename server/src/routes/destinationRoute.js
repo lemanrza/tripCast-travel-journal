@@ -7,18 +7,18 @@ const {
     createDestination,
     updateDestination,
     deleteDestination,
-    updateDestinationStatus
+    updateDestinationStatus,
+    searchDestinationsController
 } = require("../controllers/destinationController");
 const authenticateToken = require("../middleware/authenticateToken");
 
 const destinationRouter = express.Router();
 
-// Apply authentication middleware to all routes
 destinationRouter.use(authenticateToken);
 
-// Main CRUD routes
 destinationRouter.get("/", getAllDestinations);
 destinationRouter.post("/", createDestination);
+destinationRouter.get("/search", searchDestinationsController);
 destinationRouter.get("/my-destinations", getUserOwnDestinations);
 destinationRouter.get("/list/:listId", getDestinationsByListId);
 destinationRouter.get("/:id", getDestinationById);

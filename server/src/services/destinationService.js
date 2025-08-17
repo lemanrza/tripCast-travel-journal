@@ -1,5 +1,28 @@
 const DestinationModel = require("../models/destinationModel.js");
 const TravelListModel = require("../models/travelListModel.js");
+const { buildRegexQuery } = require("../utils/regex.js");
+
+exports.searchDestinationsService = async (opts) => {
+    const {
+        q,
+        page = 1,
+        limit = 10,
+        filter = {},
+        select = "name country image listId createdAt",
+    } = opts;
+
+    const query = { ...filter, ...buildRegexQuery(q, ["name", "country", "notes"]) };
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+    const safePage = Math.max(page, 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [items, total] = await Promise.all([
+        DestinationModel.find(query).select(select).skip(skip).limit(safeLimit).sort({ createdAt: -1 }).lean().exec(),
+        DestinationModel.countDocuments(query),
+    ]);
+
+    return { data: items, total, page: safePage, limit: safeLimit };
+}
 
 exports.getAll = async (userId) => {
     const userLists = await TravelListModel.find({

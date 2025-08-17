@@ -13,11 +13,31 @@ const {
     acceptCollaboratorRequest,
     rejectCollaboratorRequest,
     removeCollaborator,
+    searchListsService,
 } = require("../services/listService.js");
 const UserModel = require("../models/userModel.js");
 const config = require("../config/config.js");
 const formatMongoData = require("../utils/formatMongoData.js");
 const { sendCollaboratorInviteEmail } = require("../utils/sendMail.js");
+
+exports.searchListsController = async (req, res) => {
+    try {
+        const q = String(req.query.q || "");
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const userId = (req)?.user?._id || (req)?.user?.id;
+        const filter =
+            userId
+                ? { $or: [{ owner: userId }, { collaborators: userId }] }
+                : {};
+
+        const result = await searchListsService({ q, page, limit, filter });
+        res.json(result);
+    } catch (err) {
+        console.error("searchListsController error:", err);
+        res.status(500).json({ message: "Search lists failed" });
+    }
+}
 
 exports.getAllLists = async (_, res, next) => {
     try {

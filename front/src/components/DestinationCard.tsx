@@ -10,7 +10,6 @@ import { Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 function DestinationCard({ index, control, register, errors, onRemove, setValue }: any) {
-    // watch status of this destination
     const status = useWatch({ control, name: `destinations.${index}.status` as const });
 
     useEffect(() => {
