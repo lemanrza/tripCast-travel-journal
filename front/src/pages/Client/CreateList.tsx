@@ -118,7 +118,6 @@ export default function CreateTravelList() {
     try {
       let coverImageUrl: string | null = uploadedImageUrl;
       
-      // If no uploaded image URL and a file is provided, upload it
       if (!coverImageUrl && values.coverImage && values.coverImage instanceof File) {
         console.log("Uploading cover image...");
         coverImageUrl = await handleImageUpload(values.coverImage);
@@ -129,7 +128,6 @@ export default function CreateTravelList() {
         }
       }
 
-      // Ensure we have a cover image (either uploaded or pre-existing)
       if (!coverImageUrl) {
         setIsSubmitting(false);
         enqueueSnackbar("Cover image is required. Please select an image.", { variant: "error" });
