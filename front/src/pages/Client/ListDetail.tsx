@@ -148,7 +148,7 @@ export default function TravelListDetail() {
 
     try {
       const resp = await controller.deleteOne(endpoints.journals, jId);
-      const ok = resp?.success !== false; // accept 204 / empty body
+      const ok = resp?.success !== false; 
       if (!ok) {
         setJournals(prevJournals);
         setListData(prevListData as any);
@@ -158,7 +158,6 @@ export default function TravelListDetail() {
 
       enqueueSnackbar("✅ Journal entry deleted successfully", { variant: "success" });
 
-      // best-effort asset cleanup
       const publicIds = safeToArray((journal as any).photos).map((p: any) => p?.public_id).filter(Boolean);
       for (const pid of publicIds) {
         try {

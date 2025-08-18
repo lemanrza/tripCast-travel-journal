@@ -27,7 +27,6 @@ exports.searchJournalsController = async (req, res) => {
     }
 }
 
-
 exports.getAllJournals = async (req, res, next) => {
     try {
         const userId = req.user._id;
