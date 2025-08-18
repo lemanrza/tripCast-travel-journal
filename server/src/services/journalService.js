@@ -213,31 +213,28 @@ exports.delete = async (journalId, userId) => {
     try {
         const journal = await JournalEntryModel.findById(journalId);
         if (!journal) {
-            return {
-                success: false,
-                message: "Journal entry not found",
-            };
+            return { success: false, message: "Journal entry not found" };
         }
 
         const destination = await DestinationModel.findById(journal.destination);
-        const list = await TravelListModel.findById(destination.listId);
-
-        const canDelete = journal.author.toString() === userId.toString() ||
-            list.owner.toString() === userId.toString();
-
-        if (!canDelete) {
-            return {
-                success: false,
-                message: "You don't have permission to delete this journal entry",
-            };
+        if (!destination) {
+            return { success: false, message: "Destination not found for this journal" };
         }
 
-        await JournalEntryModel.findByIdAndDelete(journalId);
+        const list = await TravelListModel.findById(destination.listId);
+        if (!list) {
+            return { success: false, message: "Parent travel list not found" };
+        }
 
-        return {
-            success: true,
-            message: "Journal entry deleted successfully",
-        };
+        await Promise.all([
+            JournalEntryModel.findByIdAndDelete(journalId),
+            DestinationModel.updateOne(
+                { _id: destination._id },
+                { $pull: { journals: journal._id } }
+            ),
+        ]);
+
+        return { success: true, message: "Journal entry deleted successfully" };
     } catch (error) {
         console.error("Journal deletion error:", error);
         return {
