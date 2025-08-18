@@ -31,7 +31,6 @@ export default function TravelListDetail() {
   const user = useSelector((state: any) => state.user);
   const isOwner = listData?.owner?._id === user.id;
 
-  // Fetch data
   useEffect(() => {
     async function fetchAll() {
       if (!listId) {
@@ -79,7 +78,6 @@ export default function TravelListDetail() {
     return { destCount, completedCount, memberCount, journalCount };
   }, [listData]);
 
-  // Journals: create
   const handleCreateJournal = async (payload: any) => {
     if (!listId) throw new Error("No list ID");
     try {
@@ -128,14 +126,12 @@ export default function TravelListDetail() {
     }
   };
 
-  // Journals: optimistic delete
   const handleDeleteJournal = async (journal: JournalDetail) => {
     const jId = getEntityId(journal);
 
     const prevJournals = journals;
     const prevListData = listData;
 
-    // optimistic UI
     setJournals((prev) => prev.filter((j) => getEntityId(j) !== jId));
     setListData((prev: any) => {
       if (!prev) return prev;
@@ -208,7 +204,6 @@ export default function TravelListDetail() {
         <Link to={"/dashboard"} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">← Back to Dashboard</Link>
       </div>
 
-      {/* Hero (with Settings button & modals injected) */}
       <ListHero
         title={listTitle}
         description={description}
