@@ -14,7 +14,8 @@ const {
     getPendingCollabRequests,
     acceptCollabRequest,
     rejectCollabRequest,
-    searchListsController
+    searchListsController,
+    httpEnableChat
 } = require("../controllers/listController");
 const authenticateToken = require("../middleware/authenticateToken");
 
@@ -43,5 +44,8 @@ listRouter.post("/me/collab-requests/:requestId/reject", rejectCollabRequest);
 
 listRouter.post("/:id/destinations", addDestinationToList);
 listRouter.delete("/:id/destinations/:destinationId", removeDestinationFromList);
+
+//socket
+listRouter.post("/:id/enable-chat", httpEnableChat);
 
 module.exports = listRouter;

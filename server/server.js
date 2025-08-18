@@ -1,4 +1,5 @@
-const app = require("./app")
-const connectToDb=require("./src/config/db")
+// server.js
+const { server } = require("./app");
+const connectToDb = require("./src/config/db");
 
-connectToDb(app)
+connectToDb(server);

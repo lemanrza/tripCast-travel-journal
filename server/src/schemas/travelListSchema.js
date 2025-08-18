@@ -26,9 +26,9 @@ const travelListSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Destination",
         }],
-        chat: {
+        group: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Chat",
+            ref: "Group",
             default: null,
         },
     }, { timestamps: true });

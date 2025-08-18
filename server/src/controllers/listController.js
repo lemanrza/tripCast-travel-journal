@@ -14,6 +14,7 @@ const {
     rejectCollaboratorRequest,
     removeCollaborator,
     searchListsService,
+    enableChat,
 } = require("../services/listService.js");
 const UserModel = require("../models/userModel.js");
 const config = require("../config/config.js");
@@ -372,3 +373,18 @@ exports.removeDestinationFromList = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.httpEnableChat = async (req, res) => {
+    const listId = req.params.id;
+    const userId = req.user && req.user._id; // adapt to your auth
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const out = await enableChat(listId, userId);
+
+    if (!out.success) {
+        return res.status(400).json({ message: out.message });
+    }
+
+    return res.json(out.data);
+}

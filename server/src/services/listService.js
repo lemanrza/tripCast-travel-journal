@@ -1,3 +1,4 @@
+const GroupModel = require("../models/groupModel.js");
 const TravelListModel = require("../models/travelListModel.js");
 const UserModel = require("../models/userModel.js");
 const { buildRegexQuery } = require("../utils/regex.js");
@@ -68,7 +69,6 @@ exports.create = async (payload, userId) => {
     try {
         const { title, description, tags, isPublic, coverImage } = payload;
 
-        // Validate required fields
         if (!title || !description) {
             return {
                 success: false,
@@ -529,5 +529,46 @@ exports.rejectCollaboratorRequest = async (userId, requestId) => {
         return { success: true, message: "Invite dismissed" };
     } catch (error) {
         return { success: false, message: error?.message || "Internal server error" };
+    }
+};
+
+exports.enableChat = async (listId, userId) => {
+    try {
+        const list = await TravelListModel.findById(listId).lean();
+        if (!list) return { success: false, message: "Travel list not found" };
+
+        const isOwner = String(list.owner) === String(userId);
+        const isCollaborator = (list.collaborators || []).some(
+            (id) => String(id) === String(userId)
+        );
+
+        if (!isOwner && !isCollaborator) {
+            return { success: false, message: "Only owner/collaborators can enable chat" };
+        }
+
+        if (!list.collaborators || list.collaborators.length < 1) {
+            return { success: false, message: "Add at least one collaborator to enable chat" };
+        }
+
+        if (list.group) {
+            return { success: true, data: { group: list.group }, message: "Chat already enabled" };
+        }
+
+        // create Group with owner as admin and all collaborators as members
+        const uniqueMembers = Array.from(
+            new Set([String(list.owner), ...(list.collaborators || []).map(String)])
+        ).map((id) => new mongoose.Types.ObjectId(id));
+
+        const group = await GroupModel.create({
+            name: list.title,
+            members: uniqueMembers,
+            admins: [list.owner],
+        });
+
+        await TravelListModel.findByIdAndUpdate(listId, { group: group._id });
+
+        return { success: true, data: { group: group._id }, message: "Chat enabled" };
+    } catch (err) {
+        return { success: false, message: err?.message || "Internal server error" };
     }
 };
