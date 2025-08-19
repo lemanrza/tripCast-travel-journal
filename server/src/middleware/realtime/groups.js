@@ -9,7 +9,7 @@ module.exports = function registerGroupHandlers(io, socket) {
     const userId = socket.userId;
 
     socket.on("group:join", async ({ groupId }, ack) => {
-         console.log("[ws] group:join", { sid: socket.id, userId, groupId });
+        console.log("[ws] group:join", { sid: socket.id, userId, groupId });
 
         if (!mongoose.isValidObjectId(groupId)) return ack && ack({ ok: false, error: "Bad groupId" });
 
@@ -45,54 +45,76 @@ module.exports = function registerGroupHandlers(io, socket) {
         socket.leave(`group:${groupId}`);
     });
 
-    socket.on("message:send", async ({ groupId, text, clientId }, ack) => {
+    socket.on("message:send", async (payload, ack) => {
         try {
-            console.log("[ws] message:send", { sid: socket.id, userId, groupId, textLen: text?.length, clientId });
+            const { groupId, text, audioUrl, imageUrl, fileUrl, fileName, clientId } = payload || {};
+            console.log("[ws] message:send", {
+                sid: socket.id,
+                userId,
+                groupId,
+                textLen: text?.length,
+                hasAudio: !!audioUrl,
+                hasImage: !!imageUrl,
+                hasFile: !!fileUrl,
+                clientId,
+            });
 
             if (!socket.userId) {
                 console.error("message:send missing userId on socket");
                 return ack && ack({ ok: false, error: "Unauthorized" });
             }
-            if (!text || !text.trim()) return ack && ack({ ok: false, error: "Empty" });
 
-            const group = await Group.findById(groupId).select("_id members");
-            if (!group) return ack && ack({ ok: false, error: "Group not found" });
-            if (!group.members.some((m) => String(m) === String(userId)))
-                return ack && ack({ ok: false, error: "Forbidden" });
+            // must have at least one content field
+            const hasContent =
+                (text && text.trim()) || audioUrl || imageUrl || fileUrl;
+            if (!hasContent) return ack && ack({ ok: false, error: "Empty" });
+
+            // validate ids and membership
             if (!mongoose.isValidObjectId(groupId) || !mongoose.isValidObjectId(userId)) {
                 console.error("[ws] bad ids", { groupId, userId });
                 return ack && ack({ ok: false, error: "Bad identifiers" });
             }
+            const group = await Group.findById(groupId).select("_id members");
+            if (!group) return ack && ack({ ok: false, error: "Group not found" });
+            if (!group.members.some((m) => String(m) === String(userId)))
+                return ack && ack({ ok: false, error: "Forbidden" });
 
-            const isValidGroup = mongoose.isValidObjectId(groupId);
-            const isValidUser = mongoose.isValidObjectId(userId);
-            if (!isValidGroup || !isValidUser) {
-                console.error("Invalid ObjectId(s) for message", { groupId, userId });
-                return ack && ack({ ok: false, error: "Bad identifiers" });
-            }
-            let msg = clientId ? await Message.findOne({ clientId }) : null;
+            // dedupe by clientId if provided
+            let msg = clientId ? await Message.findOne({ clientId, group: groupId }) : null;
 
             if (!msg) {
+                const body = {};
+                if (text && text.trim()) body.text = String(text).slice(0, 5000);
+                if (audioUrl) body.audioUrl = audioUrl;
+                if (imageUrl) body.imageUrl = imageUrl;
+                if (fileUrl) {
+                    body.fileUrl = fileUrl;
+                    if (fileName) body.fileName = fileName;
+                }
+
                 msg = await Message.create({
                     group: new mongoose.Types.ObjectId(groupId),
                     author: new mongoose.Types.ObjectId(userId),
-                    body: { text: String(text).slice(0, 5000) },
                     clientId,
-                    deliveredTo: [],
-                    readBy: [userId]
+                    body,
+                    readBy: [userId],
                 });
+
                 await Group.findByIdAndUpdate(groupId, { lastMessage: msg._id });
             }
 
-            const payload = await msg.populate([{ path: "author", select: "fullName profileImage _id" }]);
+            const payloadOut = await msg.populate([
+                { path: "author", select: "fullName profileImage _id" },
+            ]);
 
-            io.to(`group:${groupId}`).emit("message:new", payload);
-            ack && ack({ ok: true, message: payload });
+            io.to(`group:${groupId}`).emit("message:new", payloadOut);
+            ack && ack({ ok: true, message: payloadOut });
         } catch (e) {
             console.error("[ws] message:send error", e);
             ack && ack({ ok: false, error: e?.message || "Server error" });
         }
     });
+
 
     socket.on("typing:start", ({ groupId }) => {
         socket.to(`group:${groupId}`).emit("typing:update", { groupId, userId, typing: true });
