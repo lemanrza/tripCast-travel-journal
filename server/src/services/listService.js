@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const GroupModel = require("../models/groupModel.js");
 const TravelListModel = require("../models/travelListModel.js");
 const UserModel = require("../models/userModel.js");
@@ -464,7 +465,7 @@ exports.getMyCollaboratorRequests = async (userId) => {
 };
 
 exports.acceptCollaboratorRequest = async (userId, requestId) => {
-    const session = await UserModel.startSession();
+    const session = await mongoose.startSession();
     session.startTransaction();
     try {
         const me = await UserModel.findById(userId).session(session);
@@ -476,42 +477,51 @@ exports.acceptCollaboratorRequest = async (userId, requestId) => {
         const listId = reqDoc.list;
         const list = await TravelListModel.findById(listId).session(session);
         if (!list) {
-            // remove stale request
             reqDoc.deleteOne();
             await me.save({ session });
             await session.commitTransaction();
-            session.endSession();
             return { success: false, message: "List not found; request removed" };
         }
 
-        // Add to list collaborators and user's lists idempotently
-        if (!list.collaborators.some((id) => String(id) === String(userId)) &&
-            String(list.owner) !== String(userId)) {
-            list.collaborators.push(userId);
-            await list.save({ session });
+        if (String(list.owner) !== String(userId)) {
+            await TravelListModel.updateOne(
+                { _id: listId },
+                { $addToSet: { collaborators: userId } },
+                { session }
+            );
         }
 
-        if (!me.lists.some((id) => String(id) === String(listId))) {
-            me.lists.push(listId);
+        await UserModel.updateOne(
+            { _id: userId },
+            { $addToSet: { lists: listId } },
+            { session }
+        );
+
+        if (list.group) {
+            await GroupModel.updateOne(
+                { _id: list.group },
+                { $addToSet: { members: userId } },
+                { session }
+            );
         }
 
-        // Remove the request
-        reqDoc.deleteOne();
+        me.collaboratorsRequest.id(requestId)?.deleteOne();
         await me.save({ session });
 
         await session.commitTransaction();
-        session.endSession();
 
         const hydrated = await TravelListModel
             .findById(listId)
             .populate("owner", "fullName email profileImage")
-            .populate("collaborators", "fullName email profileImage");
+            .populate("collaborators", "fullName email profileImage")
+            .populate("destinations");
 
         return { success: true, message: "Joined as collaborator", data: hydrated };
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         return { success: false, message: error?.message || "Internal server error" };
+    } finally {
+        session.endSession();
     }
 };
 
