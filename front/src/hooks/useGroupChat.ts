@@ -8,9 +8,12 @@ export type ChatMessage = {
   _id?: string;
   clientId?: string;
   group: string;
-  author: User;
-  body?: { text?: string };
-  createdAt?: Date;
+  author: User | string;
+  body?: {
+    text?: string;
+    audioUrl?: string; // <-- add this
+  };
+  createdAt?: Date | string;
 };
 
 export default function useGroupChat(groupId: string, token: string) {
@@ -46,11 +49,7 @@ export default function useGroupChat(groupId: string, token: string) {
     const onNew = (m: ChatMessage) => {
       console.log("[ws] message:new", m);
       setMessages((prev) => {
-        if (
-          prev.some(
-            (msg) => msg._id === m._id || (m.clientId && msg.clientId === m.clientId)
-          )
-        ) {
+        if (prev.some((msg) => msg._id === m._id || (m.clientId && msg.clientId === m.clientId))) {
           return prev;
         }
         return [...prev, m];
@@ -58,17 +57,9 @@ export default function useGroupChat(groupId: string, token: string) {
     };
     socket.on("message:new", onNew);
 
-    const onTyping = ({
-      userId,
-      typing,
-    }: {
-      userId: string;
-      typing: boolean;
-    }) => {
+    const onTyping = ({ userId, typing }: { userId: string; typing: boolean }) => {
       if (typing) {
-        setTypingUsers((prev) =>
-          prev.includes(userId) ? prev : [...prev, userId]
-        );
+        setTypingUsers((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
         clearTimeout(typingMap.current[userId]);
         typingMap.current[userId] = window.setTimeout(() => {
           setTypingUsers((prev) => prev.filter((u) => u !== userId));
@@ -97,6 +88,16 @@ export default function useGroupChat(groupId: string, token: string) {
       });
     });
 
+  const sendVoice = (audioUrl: string) =>
+    new Promise((resolve, reject) => {
+      const clientId = crypto.randomUUID();
+      socket.emit("message:send", { groupId, audioUrl, clientId }, (ack: any) => {
+        console.log("[ws] send voice ack", ack);
+        if (!ack?.ok) return reject(ack?.error || "send failed");
+        resolve(ack.message);
+      });
+    });
+
   const startTyping = () => {
     socket.emit("typing:start", { groupId });
   };
@@ -109,5 +110,5 @@ export default function useGroupChat(groupId: string, token: string) {
     socket.emit("message:read", { groupId, messageIds: ids });
   };
 
-  return { messages, sendMessage, startTyping, stopTyping, markRead, typingUsers };
+  return { messages, sendMessage, sendVoice, startTyping, stopTyping, markRead, typingUsers };
 }
