@@ -24,6 +24,7 @@ const destinationRouter = require("./src/routes/destinationRoute.js");
 const journalRouter = require("./src/routes/journalRoute.js");
 const googleRouter = require("./src/routes/googleRoute.js");
 const uploadRouter = require("./src/routes/uploadRoute.js");
+const groupRouter = require("./src/routes/groupRoute.js")
 
 const socketAuth = require("./src/middleware/realtime/auth.js");
 const registerGroupHandlers = require("./src/middleware/realtime/groups.js");
@@ -50,6 +51,7 @@ app.use("/destinations", destinationRouter);
 app.use("/journals", journalRouter);
 app.use("/upload", uploadRouter);
 app.use("/messages", messageRouter);
+app.use("/groups", groupRouter)
 
 // error handler
 app.use(errorHandler);

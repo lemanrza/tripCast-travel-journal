@@ -90,11 +90,6 @@ router.delete("/image", async (req, res) => {
   }
 });
 
-/* ------------------------------ VOICE UPLOAD ----------------------------- */
-/**
- * Cloudinary stores most audio under resource_type "video".
- * We’ll accept webm/ogg/mp3/m4a/wav (and also "video/webm" from some browsers).
- */
 
 const voiceStorage = new CloudinaryStorage({
   cloudinary,

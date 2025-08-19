@@ -6,7 +6,8 @@ const endpoints = {
     journals: "/journals",
     upload: "/upload",
     destinations: "/destinations",
-    messages: "/messages"
+    messages: "/messages",
+    groups: "/groups"
 };
 
 export default endpoints;
