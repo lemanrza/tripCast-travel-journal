@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Mic, Square } from "lucide-react";
+import { X, Mic, Square, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import useGroupChat from "@/hooks/useGroupChat";
@@ -7,14 +7,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
 import AudioBubble from "./AudioBubble";
+import GroupInfoDialog from "./GroupInfoDialog";
+import type { Group } from "@/types/GroupType";
 
 type Props = { onClose?: () => void; groupId: string; token: string; meId: string };
+
+
+const isIdEq = (a?: any, b?: any) =>
+    (typeof a === "string" ? a : a?._id) === (typeof b === "string" ? b : b?._id);
 
 export default function ChatBox({ onClose, groupId, token, meId }: Props) {
     const { messages, sendMessage, sendVoice, startTyping, stopTyping, markRead, typingUsers } =
         useGroupChat(groupId, token);
 
     const [input, setInput] = useState("");
+    const [group, setGroup] = useState<Group | null>(null);
+    const [infoOpen, setInfoOpen] = useState(false);
+
     const listRef = useRef<HTMLDivElement>(null);
     const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,6 +37,17 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<BlobPart[]>([]);
+
+    useEffect(() => {
+        controller.getOne(`${endpoints.groups}/${groupId}`)
+            .then((res: any) => {
+                if (res?.success) setGroup(res.data);
+            })
+            .catch((e: any) => console.error("Group load fail:", e));
+    }, [groupId]);
+
+    const isAdmin = !!group && (group.admins || []).some((a) => isIdEq(a, meId));
+
 
     const onSend = async () => {
         const v = input.trim();
@@ -71,8 +91,6 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
                         headers: { "Content-Type": "multipart/form-data" },
                     });
 
-                    // controller.post -> returns response.data (the JSON body)
-                    // { message, success, data: { url, public_id } }
                     if (!res?.success) {
                         throw new Error(res?.message || "Upload failed");
                     }
@@ -162,17 +180,55 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
                 aria-label="Chat window"
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-3 border-b">
-                    <h2 className="font-semibold">Chat</h2>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        aria-label="Close chat"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
+                <div className="p-3 border-b sticky top-0 z-10 bg-white">
+                    <div className="flex items-center justify-between">
+                        <div
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => setInfoOpen(true)}
+                            title="Open group info"
+                        >
+                            <div className="relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-black/10">
+                                {group?.profileImage?.url ? (
+                                    <img src={group.profileImage.url} alt={group?.name || "Group"} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full grid place-items-center bg-blue-50 text-blue-700 font-semibold">
+                                        {group?.name?.[0]?.toUpperCase() || "G"}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="leading-tight">
+                                <div className="font-semibold">
+                                    {group?.name || "Group"}
+                                </div>
+                                <div className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">
+                                    {group?.description || "Tap to view group info"}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setInfoOpen(true)}
+                                aria-label="Group info"
+                                title="Group info"
+                            >
+                                <Info className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                aria-label="Close chat"
+                                title="Close"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
+
 
                 {/* Messages */}
                 <div
@@ -307,6 +363,17 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
                     )}
                 </DialogContent>
             </Dialog>
+            {/* Group Info / Edit Modal */}
+            <GroupInfoDialog
+                open={infoOpen}
+                onOpenChange={setInfoOpen}
+                group={group}
+                isAdmin={isAdmin}
+                onSaved={(g) => setGroup(g)}
+                groupId={groupId}
+            />
+
+
         </>
     );
 }
