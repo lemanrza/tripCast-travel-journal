@@ -20,7 +20,7 @@ function toCard(list: List) {
     user: list.owner,
     coverImage: list.coverImage || "",
     visibility: list.isPublic ? ("Public" as const) : ("Private" as const),
-    created: new Date(list.created).toLocaleDateString() || "Unknown",
+    createdAt: new Date(list.createdAt).toLocaleDateString() || "Unknown",
     collaborators: list.collaborators?.length || 0,
     isNew: false,
   };

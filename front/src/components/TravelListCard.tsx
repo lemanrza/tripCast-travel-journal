@@ -13,7 +13,7 @@ type TravelListCardProps = {
   tags: string[];
   coverImage: string; 
   visibility: "Public" | "Private";
-  created: string;
+  createdAt: string;
   collaborators: number;
   isNew?: boolean;
 };
@@ -27,7 +27,7 @@ export default function TravelListCard({
   total,
   tags,
   visibility,
-  created,
+  createdAt,
   collaborators,
   coverImage,
   isNew = false,
@@ -82,7 +82,7 @@ export default function TravelListCard({
 
           <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
             <div>{collaborators} collaborator{collaborators !== 1 && "s"}</div>
-            <div>Created {created} by {user.fullName}</div>
+            <div>Created {createdAt} by {user.fullName}</div>
           </div>
         </div>
       </div>

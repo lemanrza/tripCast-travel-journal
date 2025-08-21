@@ -50,7 +50,7 @@ export function useListFiltering(lists: List[], q: string, f: Filters) {
       if (f.tags.length && !f.tags.every((t) => (l.tags || []).includes(t))) return false;
 
       // Date range (created is ISO string in your ListType)
-      const created = new Date(l.created).getTime();
+      const created = new Date(l.createdAt).getTime();
       if (f.createdFrom) {
         const from = new Date(f.createdFrom).getTime();
         if (created < from) return false;
@@ -94,7 +94,7 @@ export function useListFiltering(lists: List[], q: string, f: Filters) {
       case "recent":
       default:
         arr.sort(
-          (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
     }
 
