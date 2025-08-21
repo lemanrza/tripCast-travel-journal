@@ -1,4 +1,3 @@
-// src/pages/TravelListDetail.tsx
 import { Link, useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -144,7 +143,7 @@ export default function TravelListDetail() {
 
     try {
       const resp = await controller.deleteOne(endpoints.journals, jId);
-      const ok = resp?.success !== false; 
+      const ok = resp?.success !== false;
       if (!ok) {
         setJournals(prevJournals);
         setListData(prevListData as any);
@@ -158,7 +157,7 @@ export default function TravelListDetail() {
       for (const pid of publicIds) {
         try {
           await controller.deleteOne(`${endpoints.upload}/image`, encodeURIComponent(pid));
-        } catch {}
+        } catch { }
       }
     } catch (err: any) {
       setJournals(prevJournals);
@@ -231,6 +230,13 @@ export default function TravelListDetail() {
       {/* Members */}
       {listData?.collaborators && listData.collaborators.length > 0 && (
         <Members
+          owner={{
+            id: listData?.owner?._id ?? "",
+            fullName: listData?.owner?.fullName ?? "",
+            profileImage: listData?.owner?.profileImage?.url
+              ? { url: listData.owner.profileImage.url }
+              : undefined,
+          }}
           isThisListMe={!!isOwner}
           currentUserId={user.id}
           collaborators={(listData?.collaborators || []).map((u: any) => ({
