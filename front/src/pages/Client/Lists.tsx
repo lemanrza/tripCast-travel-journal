@@ -98,7 +98,7 @@ const Lists = () => {
                   tags={list.tags}
                   coverImage={list.coverImage}
                   visibility={list.isPublic ? 'Public' : 'Private'}
-                  created={list.created}
+                  createdAt={new Date(list.createdAt).toLocaleDateString()}
                   collaborators={list.collaborators.length}
                 />
               ))}

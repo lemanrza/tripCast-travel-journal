@@ -14,7 +14,7 @@ export type List = {
     collaborators: User[];
     coverImage: string;
     destinations: Destination[];
-    created: string;
+    createdAt: string;
     group: GroupLite
 };
 export function mapListFromApi(api: any): List {
@@ -28,7 +28,7 @@ export function mapListFromApi(api: any): List {
     collaborators: api.collaborators ?? [],
     coverImage: api.coverImage,
     destinations: api.destinations ?? [],
-    created: api.createdAt,
+    createdAt: api.createdAt,
     group: api.group ?? null,
   };
 }

@@ -56,16 +56,16 @@ export default function Dashboard() {
     fetchSharedLists();
   }, [userRedux?.id]);
 
-  const totalDestinations = [...myLists, ...sharedLists].reduce(
+  const totalDestinations = [...myLists].reduce(
     (t, l) => t + (l.destinations?.length || 0), 0
   );
-  const completedDestinations = [...myLists, ...sharedLists].reduce((t, l) => {
+  const completedDestinations = [...myLists].reduce((t, l) => {
     const done = (l.destinations || []).filter((d: any) => d?.status === "completed").length;
     return t + done;
   }, 0);
   const totalCollaborators = myLists.reduce((t, l) => t + (l.collaborators?.length || 0), 0);
   const listsThisYear = myLists.filter(
-    (l) => new Date(l.created).getFullYear() === new Date().getFullYear()
+    (l) => new Date(l.createdAt).getFullYear() === new Date().getFullYear()
   ).length;
 
   const stats = [
