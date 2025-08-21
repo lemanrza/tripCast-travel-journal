@@ -232,7 +232,7 @@ export default function Header() {
             </h1>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+          <nav className="hidden lg:flex items-center gap-7 text-md font-medium text-muted-foreground ml-8">
             <NavLink to="/dashboard" className="hover:text-blue-800 transition">Dashboard</NavLink>
             <NavLink to="/lists" className="hover:text-blue-800 transition">Lists</NavLink>
             <NavLink to="/journals" className="hover:text-blue-800 transition">Journal</NavLink>
