@@ -32,7 +32,7 @@ export default function NotFound() {
           {/* Buttons */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <Link
-              to="/"
+              to="/dashboard"
               className="group inline-flex items-center rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 px-5 py-2.5 text-white shadow-md transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
             >
               ⟵ Back home
