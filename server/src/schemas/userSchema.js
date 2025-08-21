@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const achievementsSchema = require("./achivementsSchema");
 const userSchema = new mongoose.Schema(
     {
         email: {
@@ -66,6 +67,8 @@ const userSchema = new mongoose.Schema(
                 createdAt: { type: Date, default: Date.now }
             }
         ],
+        achievements: { type: [achievementsSchema], default: [] },
+
     },
     { timestamps: true }
 );

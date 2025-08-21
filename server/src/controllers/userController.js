@@ -115,7 +115,6 @@ exports.getUserByEmail = async (
     }
 };
 
-
 exports.registerUser = async (
     req,
     res,
@@ -288,10 +287,7 @@ exports.updateUserById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const updated = await updateOne(id, req.body);
-
-        if (!updated) {
-            return res.status(404).json({ message: "no such user found!", data: null });
-        }
+        if (!updated) return res.status(404).json({ message: "no such user found!", data: null });
         res.status(200).json({ message: "user updated successfully!", data: updated });
     } catch (error) {
         next(error);
@@ -299,19 +295,19 @@ exports.updateUserById = async (req, res, next) => {
 };
 
 exports.changeUserPassword = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { oldPassword, newPassword } = req.body;
+    try {
+        const { id } = req.params;
+        const { oldPassword, newPassword } = req.body;
 
-    if (req.user && req.user.id && req.user.id.toString() !== id.toString()) {
-      return res.status(403).json({ message: "Forbidden" });
+        if (req.user && req.user.id && req.user.id.toString() !== id.toString()) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        await changePassword(id, oldPassword, newPassword);
+        return res.status(200).json({ message: "Password updated successfully!" });
+    } catch (error) {
+        console.error("changePassword error:", error);
+        const status = error.statusCode || 400;
+        return res.status(status).json({ message: error.message || "Bad request" });
     }
-
-    await changePassword(id, oldPassword, newPassword);
-    return res.status(200).json({ message: "Password updated successfully!" });
-  } catch (error) {
-    console.error("changePassword error:", error);
-    const status = error.statusCode || 400;
-    return res.status(status).json({ message: error.message || "Bad request" });
-  }
 };

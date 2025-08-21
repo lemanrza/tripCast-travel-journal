@@ -21,6 +21,7 @@ import LocationDialog from "@/components/Profile/LocationModal";
 import SocialDialog from "@/components/Profile/SocialLinksModal";
 import ChangePasswordDialog from "@/components/Profile/ChangePasswordModal";
 import AvatarDialog from "@/components/Profile/AvatarModal";
+import AchievementsGrid from "@/components/AchivementsGrid";
 
 const formatSince = (iso?: string | null): string => {
   if (!iso) return "—";
@@ -180,198 +181,198 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Profile header */}
-<div className="pt-6">
-      <Card className="mx-auto p-4 max-w-5xl border-none shadow-sm">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start">
-            {/* Avatar + change */}
-            <div className="relative">
-              <Avatar className="h-28 w-28 ring-2 ring-white shadow-sm">
-                <AvatarImage src={photoUrl} alt={me.fullName || ""} />
-                <AvatarFallback className="text-xl">{profileInitials}</AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => setOpenAvatar(true)}
-                className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow ring-1 ring-neutral-200 hover:scale-105"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Name + meta */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-semibold leading-tight">{me.fullName}</h1>
+      <div className="pt-6">
+        <Card className="mx-auto p-4 max-w-6xl border-none shadow-sm">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start">
+              {/* Avatar + change */}
+              <div className="relative">
+                <Avatar className="h-28 w-28 ring-2 ring-white shadow-sm">
+                  <AvatarImage src={photoUrl} alt={me.fullName || ""} />
+                  <AvatarFallback className="text-xl">{profileInitials}</AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => setOpenAvatar(true)}
+                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow ring-1 ring-neutral-200 hover:scale-105"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4" />
-                  {hasLocation ? (
-                    <button className="underline-offset-4 hover:underline" onClick={() => setOpenLocation(true)}>
-                      {me.location}
+              {/* Name + meta */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold leading-tight">{me.fullName}</h1>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    {hasLocation ? (
+                      <button className="underline-offset-4 hover:underline" onClick={() => setOpenLocation(true)}>
+                        {me.location}
+                      </button>
+                    ) : (
+                      <button
+                        className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
+                        onClick={() => setOpenLocation(true)}
+                      >
+                        Add location
+                      </button>
+                    )}
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" /> Member since {since}
+                  </span>
+                </div>
+
+                <div className="text-sm text-neutral-700">
+                  {hasBio ? (
+                    <button className="underline-offset-4 hover:underline" onClick={() => setOpenBio(true)}>
+                      {me.bio}
                     </button>
                   ) : (
                     <button
-                      className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
-                      onClick={() => setOpenLocation(true)}
+                      className="rounded-full border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                      onClick={() => setOpenBio(true)}
                     >
-                      Add location
+                      Add a short bio
                     </button>
                   )}
-                </span>
+                </div>
 
-                <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" /> Member since {since}
-                </span>
+                {/* Socials */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  {hasWebsite && (
+                    <a
+                      href={me.socials!.website!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center"
+                      title="Website"
+                      aria-label="Website"
+                    >
+                      <Globe className="h-5 w-5" />
+                    </a>
+                  )}
+                  {hasInstagram && (
+                    <a
+                      href={me.socials!.instagram!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center"
+                      title="Instagram"
+                      aria-label="Instagram"
+                    >
+                      <Instagram className="h-5 w-5" />
+                    </a>
+                  )}
+                  {hasTwitter && (
+                    <a
+                      href={me.socials!.twitter!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center"
+                      title="Twitter"
+                      aria-label="Twitter"
+                    >
+                      <Twitter className="h-5 w-5" />
+                    </a>
+                  )}
+
+                  {!hasWebsite && (
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddWebsite(true)}>
+                      <Plus className="h-3.5 w-3.5" /> Add Website
+                    </Button>
+                  )}
+                  {!hasInstagram && (
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddInstagram(true)}>
+                      <Plus className="h-3.5 w-3.5" /> Add Instagram
+                    </Button>
+                  )}
+                  {!hasTwitter && (
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddTwitter(true)}>
+                      <Plus className="h-3.5 w-3.5" /> Add Twitter
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <div className="text-sm text-neutral-700">
-                {hasBio ? (
-                  <button className="underline-offset-4 hover:underline" onClick={() => setOpenBio(true)}>
-                    {me.bio}
-                  </button>
-                ) : (
-                  <button
-                    className="rounded-full border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
-                    onClick={() => setOpenBio(true)}
-                  >
-                    Add a short bio
-                  </button>
-                )}
-              </div>
-
-              {/* Socials */}
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                {hasWebsite && (
-                  <a
-                    href={me.socials!.website!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center"
-                    title="Website"
-                    aria-label="Website"
-                  >
-                    <Globe className="h-5 w-5" />
-                  </a>
-                )}
-                {hasInstagram && (
-                  <a
-                    href={me.socials!.instagram!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center"
-                    title="Instagram"
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="h-5 w-5" />
-                  </a>
-                )}
-                {hasTwitter && (
-                  <a
-                    href={me.socials!.twitter!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center"
-                    title="Twitter"
-                    aria-label="Twitter"
-                  >
-                    <Twitter className="h-5 w-5" />
-                  </a>
-                )}
-
-                {!hasWebsite && (
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddWebsite(true)}>
-                    <Plus className="h-3.5 w-3.5" /> Add Website
-                  </Button>
-                )}
-                {!hasInstagram && (
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddInstagram(true)}>
-                    <Plus className="h-3.5 w-3.5" /> Add Instagram
-                  </Button>
-                )}
-                {!hasTwitter && (
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddTwitter(true)}>
-                    <Plus className="h-3.5 w-3.5" /> Add Twitter
-                  </Button>
-                )}
+              {/* Edit + Change Password */}
+              <div className="flex flex-col items-end gap-2">
+                <Button onClick={() => setOpenEdit(true)} className="rounded-xl">
+                  <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                </Button>
+                <Button variant="secondary" onClick={() => setOpenPassword(true)} className="rounded-xl">
+                  Change Password
+                </Button>
               </div>
             </div>
 
-            {/* Edit + Change Password */}
-            <div className="flex flex-col items-end gap-2">
-              <Button onClick={() => setOpenEdit(true)} className="rounded-xl">
-                <Edit className="mr-2 h-4 w-4" /> Edit Profile
-              </Button>
-              <Button variant="secondary" onClick={() => setOpenPassword(true)} className="rounded-xl">
-                Change Password
-              </Button>
-            </div>
-          </div>
+            {/* Stats placeholder */}
+            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-6">{/* … */}</div>
+          </CardContent>
 
-          {/* Stats placeholder */}
-          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-6">{/* … */}</div>
-        </CardContent>
+          <AvatarDialog
+            open={openAvatar}
+            onOpenChange={setOpenAvatar}
+            user={me}
+            onUserUpdated={applyPatch}
+          />
+          <ChangePasswordDialog me={me} open={openPassword} onOpenChange={setOpenPassword} />
 
-        <AvatarDialog
-          open={openAvatar}
-          onOpenChange={setOpenAvatar}
-          user={me}
-          onUserUpdated={applyPatch}
-        />
-        <ChangePasswordDialog me={me} open={openPassword} onOpenChange={setOpenPassword} />
+          <SocialDialog
+            open={openAddWebsite}
+            me={me}
+            onOpenChange={setOpenAddWebsite}
+            platform="website"
+            initialValue={me?.socials?.website || ""}
+            onSaved={(url) => applyPatch({ socials: { website: url } })}
+          />
+          <SocialDialog
+            open={openAddInstagram}
+            me={me}
+            onOpenChange={setOpenAddInstagram}
+            platform="instagram"
+            initialValue={me?.socials?.instagram || ""}
+            onSaved={(url) => applyPatch({ socials: { instagram: url } })}
+          />
+          <SocialDialog
+            open={openAddTwitter}
+            me={me}
+            onOpenChange={setOpenAddTwitter}
+            platform="twitter"
+            initialValue={me?.socials?.twitter || ""}
+            onSaved={(url) => applyPatch({ socials: { twitter: url } })}
+          />
 
-        <SocialDialog
-          open={openAddWebsite}
-          me={me}
-          onOpenChange={setOpenAddWebsite}
-          platform="website"
-          initialValue={me?.socials?.website || ""}
-          onSaved={(url) => applyPatch({ socials: { website: url } })}
-        />
-        <SocialDialog
-          open={openAddInstagram}
-          me={me}
-          onOpenChange={setOpenAddInstagram}
-          platform="instagram"
-          initialValue={me?.socials?.instagram || ""}
-          onSaved={(url) => applyPatch({ socials: { instagram: url } })}
-        />
-        <SocialDialog
-          open={openAddTwitter}
-          me={me}
-          onOpenChange={setOpenAddTwitter}
-          platform="twitter"
-          initialValue={me?.socials?.twitter || ""}
-          onSaved={(url) => applyPatch({ socials: { twitter: url } })}
-        />
+          <LocationDialog
+            open={openLocation}
+            me={me}
+            onOpenChange={setOpenLocation}
+            initialValue={me?.location || ""}
+            onSaved={(loc) => applyPatch({ location: loc })}
+          />
+          <BioDialog
+            me={me}
+            open={openBio}
+            onOpenChange={setOpenBio}
+            initialValue={me?.bio || ""}
+            onSaved={(bio) => applyPatch({ bio })}
+          />
 
-        <LocationDialog
-          open={openLocation}
-          me={me}
-          onOpenChange={setOpenLocation}
-          initialValue={me?.location || ""}
-          onSaved={(loc) => applyPatch({ location: loc })}
-        />
-        <BioDialog
-          me={me}
-          open={openBio}
-          onOpenChange={setOpenBio}
-          initialValue={me?.bio || ""}
-          onSaved={(bio) => applyPatch({ bio })}
-        />
-
-        <EditProfileDialog
-          open={openEdit}
-          onOpenChange={setOpenEdit}
-          user={me}
-          onUserUpdated={applyPatch}
-        />
-      </Card>
-</div>
+          <EditProfileDialog
+            open={openEdit}
+            onOpenChange={setOpenEdit}
+            user={me}
+            onUserUpdated={applyPatch}
+          />
+        </Card>
+      </div>
 
       {/* Tabs */}
-      <div className="mx-auto mt-6 max-w-5xl">
+      <div className="mx-auto mt-6 max-w-6xl">
         <Tabs defaultValue="settings">
           <TabsList className="rounded-2xl">
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
@@ -388,12 +389,9 @@ export default function ProfilePage() {
           </TabsContent>
 
           <TabsContent value="achievements" className="mt-4">
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-6 text-sm text-muted-foreground">
-                Earn badges by completing trips and writing journal entries.
-              </CardContent>
-            </Card>
+            <AchievementsGrid />
           </TabsContent>
+
 
           <TabsContent value="settings" className="mt-4">
             <Card className="border-none shadow-sm">

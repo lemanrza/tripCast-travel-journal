@@ -7,8 +7,19 @@ const {
     delete: deleteJournal,
     toggleLike,
     searchJournalsService,
+    getMine,
 } = require("../services/journalService.js");
 const formatMongoData = require("../utils/formatMongoData.js");
+
+function extractUserId(req) {
+    if (req.user && (req.user._id || req.user.id)) return String(req.user._id || req.user.id);
+
+    if (req.query.userId) return String(req.query.userId);
+    if (req.params.userId) return String(req.params.userId);
+    if (req.headers["x-user-id"]) return String(req.headers["x-user-id"]);
+
+    return null;
+}
 
 exports.searchJournalsController = async (req, res) => {
     try {
@@ -38,6 +49,20 @@ exports.getAllJournals = async (req, res, next) => {
         });
     } catch (error) {
         next(error);
+    }
+};
+
+exports.getMyJournals = async (req, res, next) => {
+    try {
+        const userId = extractUserId(req);
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized: user id not found", data: null });
+        }
+
+        const data = await getMine(userId);
+        return res.status(200).json({ message: "ok", data });
+    } catch (e) {
+        next(e);
     }
 };
 

@@ -2,6 +2,8 @@ const JournalEntryModel = require("../models/journalEntryModel.js");
 const DestinationModel = require("../models/destinationModel.js");
 const TravelListModel = require("../models/travelListModel.js");
 const { buildRegexQuery } = require("../utils/regex.js");
+const UserModel = require("../models/userModel.js");
+const { isValidObjectId } = require("mongoose");
 
 exports.searchJournalsService = async (opts) => {
     const {
@@ -47,6 +49,34 @@ exports.getAll = async (userId) => {
         .populate("author", "fullName profileImage")
         .populate("destination", "name country")
         .sort({ createdAt: -1 });
+};
+
+exports.getMine = async (userId) => {
+  if (!isValidObjectId(userId)) {
+    const err = new Error("Invalid user id");
+    err.status = 400;
+    throw err;
+  }
+
+  const byAuthor = await JournalEntryModel.find({ author: userId })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (byAuthor.length) return byAuthor;
+
+  // 2) Fallback to populating User.journals (legacy path)
+  const user = await UserModel.findById(userId)
+    .select("journals")
+    .populate({ path: "journals", options: { sort: { createdAt: -1 } } })
+    .lean();
+
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  return user.journals || [];
 };
 
 exports.getOne = async (journalId, userId) => {
