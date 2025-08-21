@@ -3,7 +3,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -269,7 +269,7 @@ export default function CreateTravelList() {
     <div className="mx-auto max-w-5xl px-4 pb-24">
       {/* Back link */}
       <div className="mb-6 flex items-center gap-2 text-sm">
-        <a href="#" className="text-muted-foreground hover:text-foreground">← Back to Dashboard</a>
+        <Link to={"/dashboard"} className="text-muted-foreground hover:text-foreground">← Back to Dashboard</Link>
       </div>
 
       <h1 className="text-3xl font-semibold tracking-tight">Create New Travel List</h1>

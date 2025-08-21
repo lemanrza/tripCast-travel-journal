@@ -11,6 +11,7 @@ const {
 const {
     sendUnlockAccountEmail,
     sendForgotPasswordEmail,
+    sendAchievementUnlockedEmail
 } = require("../utils/sendMail.js");
 const config = require("../config/config.js");
 const SERVER_URL = config.SERVER_URL;
@@ -270,31 +271,84 @@ exports.resetPass = async (newPassword, email) => {
 };
 
 exports.updateOne = async (id, payload) => {
+    const user = await UserModel.findById(id).select("email fullName achievements password").lean();
+    if (!user) {
+        const err = new Error("User not found");
+        err.status = 404;
+        throw err;
+    }
+
     const allowed = [
         "fullName",
         "bio",
         "location",
         "socials",
         "profileImage",
-        "emailNotifs",
-        "showStats",
-        "isPublic",
-        "phone",
         "phoneNumber",
+        "premium",
     ];
 
-    const update = {};
+    const $set = {};
     for (const k of allowed) {
         if (Object.prototype.hasOwnProperty.call(payload, k)) {
-            update[k] = payload[k];
+            $set[k] = payload[k];
         }
     }
 
-    const updated = await UserModel.findByIdAndUpdate(id, update, {
+    let addKeys = [];
+    if (Array.isArray(payload.achievementsAdd) && payload.achievementsAdd.length) {
+        const have = new Set((user.achievements || []).map((a) => a.key));
+        addKeys = payload.achievementsAdd
+            .filter((k) => typeof k === "string" && k.trim())
+            .filter((k) => !have.has(k));
+    }
+
+    if (addKeys.includes("storyteller_3")) {
+        const count = await JournalEntryModel.countDocuments({ author: id });
+        if (count < 3) {
+            addKeys = addKeys.filter(k => k !== "storyteller_3"); 
+        }
+    }
+
+    const updateOps = {};
+    if (Object.keys($set).length) updateOps.$set = $set;
+    if (addKeys.length) {
+        updateOps.$addToSet = {
+            achievements: {
+                $each: addKeys.map((key) => ({ key, unlockedAt: new Date() })),
+            },
+        };
+    }
+
+    if (!Object.keys(updateOps).length) {
+        const safe = { ...user };
+        delete safe.password;
+        return safe;
+    }
+
+    const updated = await UserModel.findByIdAndUpdate(id, updateOps, {
         new: true,
         runValidators: true,
-    }).select("-password");
+    }).lean();
 
+    const beforeSet = new Set((user.achievements || []).map((a) => a.key));
+    const newlyAdded = (updated.achievements || [])
+        .filter((a) => !beforeSet.has(a.key))
+        .map((a) => a.key);
+
+    if (newlyAdded.length) {
+        try {
+            await sendAchievementUnlockedEmail(
+                updated.email,
+                updated.fullName || "Traveler",
+                newlyAdded
+            );
+        } catch (e) {
+            console.error("[achievements email] failed:", e?.message || e);
+        }
+    }
+
+    delete updated.password;
     return updated;
 };
 

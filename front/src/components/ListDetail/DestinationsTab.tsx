@@ -12,6 +12,7 @@ import { enqueueSnackbar } from "notistack";
 import type { Destination } from "@/types/DestinationType";
 import type { List } from "@/types/ListType";
 import { getEntityId } from "@/utils/entityId";
+import { DialogTrigger } from "@radix-ui/react-dialog";
 
 type Props = {
   listId: string;
@@ -110,7 +111,7 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
         notes: addForm.notes.trim() || null,
         image: imageData,
         listId,
-        journal: [], 
+        journal: [],
       };
 
       const response = await controller.post(endpoints.destinations, payload);
@@ -247,9 +248,11 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
       {isOwner && (
         <div className="mb-4 flex justify-end">
           <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
-            <Button asChild variant="default" className="gap-2">
-              <div><Plus className="h-4 w-4" /> Add Destination</div>
-            </Button>
+            <DialogTrigger>
+              <Button asChild variant="default" className="gap-2">
+                <div><Plus className="h-4 w-4" /> Add Destination</div>
+              </Button>
+            </DialogTrigger>
 
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>

@@ -294,3 +294,172 @@ exports.sendCollaboratorInviteEmail = async ({
     console.error("Error sending collaborator invite email:", err);
   }
 };
+
+function prettyName(k) {
+  return k.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+function badgeEmoji(key) {
+  const map = {
+    first_journey: "⭐",
+    explorer_10: "📍",
+    storyteller_3: "✍️",
+  };
+  return map[key] || "🏅";
+}
+
+function generateAchievementHTML(userFullName, keys) {
+  const chips = keys.map(k => `
+    <span style="
+      display:inline-block;
+      padding:8px 12px;
+      margin:6px 6px 0 0;
+      background:#fff6f2;
+      color:#d14f3f;
+      border:1px solid #ffd8cf;
+      border-radius:999px;
+      font-size:14px;
+      line-height:1;
+      white-space:nowrap;
+    ">${badgeEmoji(k)} ${prettyName(k)}</span>
+  `).join("");
+
+  const items = keys.map(k => `
+    <tr>
+      <td style="padding:8px 0;font-size:15px;color:#333">
+        ${badgeEmoji(k)} <strong>${prettyName(k)}</strong>
+      </td>
+    </tr>
+  `).join("");
+
+  const ctaLink = `${config.CLIENT_URL}/profile`;
+
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Achievements Unlocked</title>
+    <style>
+      /* mobile tweaks */
+      @media (max-width: 600px) {
+        .container { width: 100% !important; }
+        .px { padding-left: 16px !important; padding-right: 16px !important; }
+        .hero-title { font-size: 22px !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;background:#f6f7fb;font-family:Arial,Helvetica,sans-serif">
+    <!-- Preheader (hidden) -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      You unlocked ${keys.length} ${keys.length > 1 ? "new achievements" : "new achievement"} on TripCast!
+    </div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%">
+      <tr>
+        <td align="center" style="padding:24px">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="width:600px;max-width:100%;background:#ffffff;border:1px solid #e9e9ef;border-radius:10px;overflow:hidden">
+            <!-- Header -->
+            <tr>
+              <td align="center" style="background:#ff6f61;padding:22px 20px;color:#fff">
+                <div style="font-size:28px;line-height:1.2;font-weight:bold;margin-bottom:6px">🎉 Congratulations!</div>
+                <div style="font-size:14px;opacity:.95">New ${keys.length > 1 ? "achievements" : "achievement"} unlocked on TripCast</div>
+              </td>
+            </tr>
+
+            <!-- Hero -->
+            <tr>
+              <td class="px" style="padding:24px 28px">
+                <div class="hero-title" style="font-size:24px;font-weight:700;color:#1f2937;margin:0 0 8px">
+                  Well done, ${userFullName || "Traveler"}!
+                </div>
+                <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6">
+                  Your recent activity just unlocked the following:
+                </p>
+
+                <!-- Chips -->
+                <div style="margin-bottom:14px">${chips}</div>
+
+                <!-- List (for clients that don’t render chips nicely) -->
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:8px">
+                  ${items}
+                </table>
+
+                <!-- CTA -->
+                <div style="text-align:center;margin:26px 0 6px">
+                  <a href="${ctaLink}" target="_blank" style="
+                    background:#ff6f61;
+                    color:#ffffff;
+                    text-decoration:none;
+                    padding:12px 20px;
+                    border-radius:8px;
+                    font-weight:700;
+                    font-size:15px;
+                    display:inline-block;
+                    border:2px solid #ff6f61;
+                  ">View My Achievements</a>
+                </div>
+
+                <p style="margin:12px 0 0;color:#6b7280;font-size:13px;line-height:1.6;text-align:center">
+                  Keep exploring, collaborating, and journaling to unlock more badges.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td style="padding:0 28px">
+                <hr style="border:none;border-top:1px solid #eef0f4;margin:0">
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="background:#f9fafb;padding:16px 20px;color:#94a3b8;font-size:12px">
+                © ${new Date().getFullYear()} TripCast • You’re receiving this because achievements are enabled in your profile.
+              </td>
+            </tr>
+          </table>
+
+          <!-- Brand footer (tiny) -->
+          <div style="font-size:11px;color:#9aa3b2;margin-top:10px">
+            If you didn’t expect this email, you can safely ignore it.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `;
+}
+
+function generateAchievementText(userFullName, keys) {
+  const lines = keys.map(k => `• ${badgeEmoji(k)} ${prettyName(k)}`).join("\n");
+  return `Congrats, ${userFullName || "Traveler"}!
+
+You just unlocked:
+${lines}
+
+Open TripCast to see your badges:
+${(config.CLIENT_URL || "").replace(/\/$/, "")}/profile#achievements
+
+© ${new Date().getFullYear()} TripCast`;
+}
+
+exports.sendAchievementUnlockedEmail = async (toEmail, userFullName, keys) => {
+  const subject = `🎉 ${keys.length > 1 ? "New Achievements" : "Achievement"} Unlocked`;
+
+  const html = generateAchievementHTML(userFullName, keys);
+  const text = generateAchievementText(userFullName, keys);
+
+  await transporter.sendMail({
+    from: `"TripCast" <${config.GMAIL_USER}>`,
+    to: toEmail,
+    subject,
+    html,
+    text, 
+  });
+};
+
+
