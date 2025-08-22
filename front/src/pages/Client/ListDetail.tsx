@@ -68,14 +68,41 @@ export default function TravelListDetail() {
   }, [listId]);
 
   // Stats
+  const {  journalsTotalForList } = useMemo(() => {
+    const dests = listData?.destinations || [];
+    const destIdSet = new Set<string>(
+      dests.map((d: any) => String(getEntityId(d))).filter(Boolean)
+    );
+
+    const map = new Map<string, number>();
+    for (const j of journals || []) {
+      const destId = String(getEntityId((j as any).destination || (j as any).destinationId));
+      if (destIdSet.has(destId)) {
+        map.set(destId, (map.get(destId) || 0) + 1);
+      }
+    }
+
+    let total = 0;
+    map.forEach((c) => { total += c; });
+
+    return { destJournalCountMap: map, journalsTotalForList: total };
+  }, [listData, journals]);
+
   const stats = useMemo(() => {
     const d = listData?.destinations || [];
     const destCount = d.length || 0;
-    const completedCount = d.filter((x: any) => x.status === "completed").length || 0;
+    const completedCount =
+      d.filter((x: any) => String(x?.status || "").toLowerCase() === "completed").length || 0;
     const memberCount = (listData?.collaborators || []).length || 0;
-    const journalCount = d.reduce((sum, dd) => sum + (Array.isArray(dd.journals) ? dd.journals.length : 0), 0) || 0;
-    return { destCount, completedCount, memberCount, journalCount };
-  }, [listData]);
+
+    return {
+      destCount,
+      completedCount,
+      memberCount,
+      journalCount: journalsTotalForList, 
+    };
+  }, [listData, journalsTotalForList]);
+
 
   const handleCreateJournal = async (payload: any) => {
     if (!listId) throw new Error("No list ID");
