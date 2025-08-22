@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Edit, MapPin, Calendar, Globe, Instagram, Twitter, Plus } from "lucide-react";
+import { Camera, Edit, MapPin, Calendar, Globe, Instagram, Twitter, Plus, X } from "lucide-react";
 
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
@@ -57,6 +57,10 @@ export default function ProfilePage() {
   const [reqLoading, setReqLoading] = useState(false);
   const [reqErr, setReqErr] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+
+
+  type Platform = "website" | "instagram" | "twitter";
+  const [removing, setRemoving] = useState<Platform | null>(null);
 
   // Fetch current user
   useEffect(() => {
@@ -158,6 +162,34 @@ export default function ProfilePage() {
     }
   }
 
+  async function removeSocial(platform: Platform, e?: React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (!me) return;
+
+    setRemoving(platform);
+    try {
+      // Merge current socials and set the one being removed to null
+      const merged = {
+        website: me.socials?.website ?? null,
+        instagram: me.socials?.instagram ?? null,
+        twitter: me.socials?.twitter ?? null,
+        [platform]: null,
+      };
+
+      await controller.updateUser(`${endpoints.users}/user`, me._id, { socials: merged });
+
+      // Update local state so UI flips instantly
+      applyPatch({ socials: { [platform]: null } as any });
+
+      enqueueSnackbar("Removed.", { variant: "success" });
+    } catch (err: any) {
+      enqueueSnackbar(err?.message || "Failed to remove.", { variant: "error" });
+    } finally {
+      setRemoving(null);
+    }
+  }
+
   if (loadingMe) {
     return (
       <div className="min-h-screen bg-neutral-50">
@@ -243,44 +275,92 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Socials */}
-                <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {/* Website */}
                   {hasWebsite && (
-                    <a
-                      href={me.socials!.website!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center"
-                      title="Website"
-                      aria-label="Website"
-                    >
-                      <Globe className="h-5 w-5" />
-                    </a>
-                  )}
-                  {hasInstagram && (
-                    <a
-                      href={me.socials!.instagram!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center"
-                      title="Instagram"
-                      aria-label="Instagram"
-                    >
-                      <Instagram className="h-5 w-5" />
-                    </a>
-                  )}
-                  {hasTwitter && (
-                    <a
-                      href={me.socials!.twitter!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center"
-                      title="Twitter"
-                      aria-label="Twitter"
-                    >
-                      <Twitter className="h-5 w-5" />
-                    </a>
+                    <div className="relative group">
+                      <a
+                        href={me.socials!.website!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ring-1 ring-border hover:bg-muted transition"
+                        title="Website"
+                      >
+                        <Globe className="h-4 w-4" />
+                        <span className="font-medium">Website</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => removeSocial("website", e)}
+                        aria-label="Remove Website"
+                        className="absolute -top-2 -right-2 z-10 grid h-5 w-5 place-items-center rounded-full bg-background/90 shadow ring-1 ring-border opacity-0 group-hover:opacity-100 transition hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        {removing === "website" ? (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <X className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
                   )}
 
+                  {/* Instagram */}
+                  {hasInstagram && (
+                    <div className="relative group">
+                      <a
+                        href={me.socials!.instagram!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ring-1 ring-border hover:bg-muted transition"
+                        title="Instagram"
+                      >
+                        <Instagram className="h-4 w-4" />
+                        <span className="font-medium">Instagram</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => removeSocial("instagram", e)}
+                        aria-label="Remove Instagram"
+                        className="absolute -top-2 -right-2 z-10 grid h-5 w-5 place-items-center rounded-full bg-background/90 shadow ring-1 ring-border opacity-0 group-hover:opacity-100 transition hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        {removing === "instagram" ? (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <X className="h-3.5 w-3.5 text-white" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Twitter / X */}
+                  {hasTwitter && (
+                    <div className="relative group">
+                      <a
+                        href={me.socials!.twitter!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ring-1 ring-border hover:bg-muted transition"
+                        title="Twitter / X"
+                      >
+                        <Twitter className="h-4 w-4" />
+                        <span className="font-medium">Twitter / X</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => removeSocial("twitter", e)}
+                        aria-label="Remove Twitter"
+                        className="absolute -top-2 -right-2 z-10 grid h-5 w-5 place-items-center rounded-full bg-background/90 shadow ring-1 ring-border opacity-0 group-hover:opacity-100 transition hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        {removing === "twitter" ? (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <X className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Add buttons (unchanged) */}
                   {!hasWebsite && (
                     <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setOpenAddWebsite(true)}>
                       <Plus className="h-3.5 w-3.5" /> Add Website
@@ -297,6 +377,8 @@ export default function ProfilePage() {
                     </Button>
                   )}
                 </div>
+
+
               </div>
 
               {/* Edit + Change Password */}

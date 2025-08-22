@@ -1,4 +1,3 @@
-// src/pages/JournalsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -383,12 +382,19 @@ export default function JournalsPage() {
                         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                           <FaRegComment /> {commentsCount} comments
                         </span>
+                        <div className="ml-auto flex items-center gap-2">
+                          {(() => {
+                            const destId = idOf(j.destination);
+                            const listId = destToListId.get(destId) || "";
+                            return listId ? (
+                              <Link to={`/lists/${listId}`}>
+                                <Button size="sm" variant="secondary">View List</Button>
+                              </Link>
+                            ) : null;
+                          })()}
 
-                        <div className="ml-auto">
                           <Link to={`/journals/${id}`}>
-                            <Button variant="outline" size="sm">
-                              Read Detail
-                            </Button>
+                            <Button variant="outline" size="sm">Read Detail</Button>
                           </Link>
                         </div>
                       </div>

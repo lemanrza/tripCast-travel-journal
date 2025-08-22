@@ -25,9 +25,6 @@ export default function EditProfileDialog({ open, onOpenChange, user, onUserUpda
 
     const [fullName, setFullName] = useState(user.fullName || "");
     const [bio, setBio] = useState(user.bio || "");
-    const [website, setWebsite] = useState(user.socials?.website || "");
-    const [instagram, setInstagram] = useState(user.socials?.instagram || "");
-    const [twitter, setTwitter] = useState(user.socials?.twitter || "");
 
     const [countryQuery, setCountryQuery] = useState("");
     const [cityQuery, setCityQuery] = useState("");
@@ -44,9 +41,6 @@ export default function EditProfileDialog({ open, onOpenChange, user, onUserUpda
 
         setFullName(user.fullName || "");
         setBio(user.bio || "");
-        setWebsite(user.socials?.website || "");
-        setInstagram(user.socials?.instagram || "");
-        setTwitter(user.socials?.twitter || "");
 
         const initialValue = user.location || "";
         const parts = initialValue.split(",").map((s) => s.trim()).filter(Boolean);
@@ -148,15 +142,6 @@ export default function EditProfileDialog({ open, onOpenChange, user, onUserUpda
             payload.bio = nextBio;
         }
 
-        // socials
-        const socials: Record<string, string> = {};
-        const prevWebsite = user.socials?.website || "";
-        const prevInstagram = user.socials?.instagram || "";
-        const prevTwitter = user.socials?.twitter || "";
-        if ((website ?? "") !== prevWebsite && (website ?? "").trim()) socials.website = (website as string).trim();
-        if ((instagram ?? "") !== prevInstagram && (instagram ?? "").trim()) socials.instagram = (instagram as string).trim();
-        if ((twitter ?? "") !== prevTwitter && (twitter ?? "").trim()) socials.twitter = (twitter as string).trim();
-        if (Object.keys(socials).length) payload.socials = socials as User["socials"];
 
         if (Object.keys(payload).length === 0) {
             enqueueSnackbar("Nothing to update.");
@@ -274,20 +259,6 @@ export default function EditProfileDialog({ open, onOpenChange, user, onUserUpda
                     <div className="space-y-2 sm:col-span-2">
                         <Label htmlFor="bio">Bio</Label>
                         <Textarea id="bio" rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
-                    </div>
-
-                    {/* Socials */}
-                    <div className="space-y-2">
-                        <Label htmlFor="website">Website</Label>
-                        <Input id="website" placeholder="https://..." value={website} onChange={(e) => setWebsite(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="instagram">Instagram</Label>
-                        <Input id="instagram" placeholder="https://instagram.com/…" value={instagram} onChange={(e) => setInstagram(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="twitter">Twitter (X)</Label>
-                        <Input id="twitter" placeholder="https://x.com/…" value={twitter} onChange={(e) => setTwitter(e.target.value)} />
                     </div>
                 </div>
 

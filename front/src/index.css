@@ -3,12 +3,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer utilities {
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 .active {
   color: #0a33ca;
 }
-*{
+
+* {
   font-family: "Inter";
 }
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
