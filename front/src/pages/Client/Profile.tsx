@@ -22,6 +22,7 @@ import SocialDialog from "@/components/Profile/SocialLinksModal";
 import ChangePasswordDialog from "@/components/Profile/ChangePasswordModal";
 import AvatarDialog from "@/components/Profile/AvatarModal";
 import AchievementsGrid from "@/components/AchivementsGrid";
+import RecentActivity from "@/components/Profile/RecentActivity";
 
 const formatSince = (iso?: string | null): string => {
   if (!iso) return "—";
@@ -455,19 +456,15 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className="mx-auto mt-6 max-w-6xl">
-        <Tabs defaultValue="settings">
+        <Tabs defaultValue="activity">
           <TabsList className="rounded-2xl">
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="settings">Collaboration Requests</TabsTrigger>
           </TabsList>
 
           <TabsContent value="activity" className="mt-4">
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-6 text-sm text-muted-foreground">
-                No recent activity yet. Start by adding your first destination!
-              </CardContent>
-            </Card>
+            <RecentActivity userId={userRedux.id} />
           </TabsContent>
 
           <TabsContent value="achievements" className="mt-4">
