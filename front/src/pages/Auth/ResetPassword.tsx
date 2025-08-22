@@ -6,12 +6,12 @@ import { jwtDecode } from "jwt-decode";
 import { useEffect, useMemo, useState } from "react";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
-
+import logo from '@/assets/image.png';
 type ResetToken = {
   email: string;
   id: string;
-  iat?: number; // seconds
-  exp?: number; // seconds
+  iat?: number;
+  exp?: number;
 };
 
 const ResetPassword = () => {
@@ -108,7 +108,7 @@ const ResetPassword = () => {
               <div className="relative mb-3">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-300/40 via-purple-300/40 to-pink-300/40 blur-xl" />
                 <img
-                  src={"../../src/assets/image.png"}
+                  src={logo}
                   alt="Trip Cast Logo"
                   className="relative w-14 h-14 mx-auto drop-shadow-md"
                 />

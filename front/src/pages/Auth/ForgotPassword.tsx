@@ -4,6 +4,7 @@ import endpoints from '@/services/api';
 import controller from '@/services/commonRequest';
 import forgotPasswordValidationSchema from '@/validations/forgotPasswordValidation';
 import { useState } from 'react';
+import logo from '@/assets/image.png';
 
 const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +68,7 @@ const ForgotPassword = () => {
               <div className="relative mb-3">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-300/40 via-purple-300/40 to-pink-300/40 blur-xl" />
                 <img
-                  src={"../src/assets/image.png"}
+                  src={logo}
                   alt="TripCast Logo"
                   className="relative w-14 h-14 mx-auto drop-shadow-md"
                 />
@@ -165,7 +166,7 @@ const ForgotPassword = () => {
               </form>
 
               <a
-                href="/auth/login"
+                href="/"
                 className="mt-4 flex items-center justify-center gap-2 font-medium text-blue-700 hover:underline"
               >
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">

@@ -19,8 +19,8 @@ import {
 import { useSelector } from "react-redux";
 import controller from "@/services/commonRequest";
 import endpoints from "@/services/api";
+import logo from '@/assets/image.png';
 
-/* ------------------------------ Types ------------------------------ */
 
 type SearchResult = {
   id: string;
@@ -39,8 +39,6 @@ const STATIC_PAGES: Array<
     { title: "Create List", path: "/create/list", subtitle: "Start a new list", group: "Pages" },
     { title: "Profile", path: "/profile", subtitle: "Your profile", group: "Pages" },
   ];
-
-/* ------------------------------ Component ------------------------------ */
 
 export default function Header() {
   const user = useSelector((state: any) => state.user);
@@ -224,7 +222,7 @@ export default function Header() {
         {/* Left: logo + desktop nav */}
         <div className="flex items-center gap-4 lg:gap-6">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src="/src/assets/image.png" alt="TripCast icon" className="w-8 h-8 shrink-0" />
+            <img src={logo} alt="TripCast icon" className="w-8 h-8 shrink-0" />
             <h1 className="text-xl lg:text-2xl font-extrabold tracking-tight">
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent">
                 Trip<span className="font-black">Cast</span>
@@ -353,7 +351,7 @@ export default function Header() {
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <img src="/src/assets/image.png" className="w-6 h-6" />
+                  <img src={logo} className="w-6 h-6" />
                   TripCast
                 </SheetTitle>
               </SheetHeader>

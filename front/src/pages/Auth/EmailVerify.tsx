@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircleIcon } from "lucide-react";
+import logo from '@/assets/image.png';
 
 const EmailVerify = () => {
   const [searchParams] = useSearchParams();
@@ -11,7 +12,7 @@ const EmailVerify = () => {
         {/* Logo and Title */}
         <div className="mb-6">
           <div className="flex flex-col items-center mb-4">
-            <img className="w-16 h-16 rounded-full" src="/src/assets/image.png" alt="TripCast Logo" />
+            <img className="w-16 h-16 rounded-full" src={logo} alt="TripCast Logo" />
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900">TripCast</h1>

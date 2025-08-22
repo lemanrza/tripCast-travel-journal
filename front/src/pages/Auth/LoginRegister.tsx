@@ -12,6 +12,7 @@ import endpoints from "@/services/api";
 import loginValidation from "@/validations/loginValidation";
 import registerValidation from "@/validations/registerValidation";
 import { setUser } from "@/features/userSlice";
+import logo from '@/assets/image.png';
 
 function LoginRegister() {
   const navigate = useNavigate();
@@ -213,7 +214,7 @@ function LoginRegister() {
         {/* Logo and Title */}
         <div className="mb-6">
           <div className="flex flex-col items-center mb-4">
-            <img className="w-16 h-16 rounded-full" src="/src/assets/image.png" alt="TripCast Logo" />
+            <img className="w-16 h-16 rounded-full" src={logo} alt="TripCast Logo" />
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900">TripCast</h1>
