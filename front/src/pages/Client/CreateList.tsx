@@ -44,7 +44,6 @@ export default function CreateTravelList() {
       description: "",
       tags: [],
       isPrivate: false,
-      collaborators: "",
       destinations: [
         {
           name: "",
@@ -134,10 +133,6 @@ export default function CreateTravelList() {
         return;
       }
 
-      const collaboratorsArray = values.collaborators
-        ? values.collaborators.split(",").map((e) => e.trim()).filter(Boolean)
-        : [];
-
       const payload = {
         title: values.title,
         description: values.description || "",
@@ -154,17 +149,6 @@ export default function CreateTravelList() {
         const listId = response.data.id || response.data._id;
         
         dispatch(addList(listId));
-        if (collaboratorsArray.length > 0) {
-          try {
-            for (const email of collaboratorsArray) {
-              await controller.post(`${endpoints.lists}/${listId}/collaborators`, {
-                collaboratorEmail: email,
-              });
-            }
-          } catch (collaboratorError) {
-            enqueueSnackbar("Failed to add some collaborators:", { variant: "error" });
-          }
-        }
 
         if (values.destinations && values.destinations.length > 0) {
           const validDestinations = values.destinations.filter(dest => dest.name && dest.country);
@@ -186,8 +170,6 @@ export default function CreateTravelList() {
                   listId: listId,
                 };
 
-                console.log("Creating destination with payload:", destinationPayload);
-                console.log("Image data being sent:", destination.image);
                 const result = await controller.post(`${endpoints.destinations}`, destinationPayload);
                 
                 if (result && result.data) {
@@ -256,7 +238,6 @@ export default function CreateTravelList() {
   };
 
   const tags = watch("tags");
-  const isPrivate = watch("isPrivate");
 
   React.useEffect(() => {
     if (!user.isAuthenticated) {
@@ -420,15 +401,6 @@ export default function CreateTravelList() {
                 />
               </div>
             </div>
-
-            {/* Collaborators – only when private */}
-            {isPrivate && (
-              <div className="space-y-2">
-                <Label>Invite Collaborators</Label>
-                <Input placeholder="Enter email addresses (comma separated)" {...register("collaborators")} />
-                <p className="text-xs text-muted-foreground">You can invite more people after creating the list</p>
-              </div>
-            )}
 
             <Separator />
 
