@@ -21,7 +21,6 @@ function AudioBubble({ src}: {src: string; }) {
 
     const calcDuration = () => {
       if (!isFinite(el.duration) || isNaN(el.duration)) {
-        // Force the browser to compute duration for MediaRecorder/WebM
         const onFix = () => {
           if (isFinite(el.duration) && !isNaN(el.duration)) {
             setDur(el.duration || 0);

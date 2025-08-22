@@ -1,8 +1,7 @@
-// src/components/ListHero.tsx
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Share2 } from "lucide-react";
-import ChatBox from "./ChatBox";
+import ChatBox from "../Chat/ChatBox";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";

@@ -1,4 +1,3 @@
-// controllers/group.controller.js
 const { getAll, getById, update } = require("../services/groupService");
 
 exports.getAll = async (req, res) => {
