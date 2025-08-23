@@ -455,70 +455,115 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="mx-auto mt-6 max-w-6xl">
+      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6 lg:px-8">
         <Tabs defaultValue="activity">
-          <TabsList className="rounded-2xl">
-            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="settings">Collaboration Requests</TabsTrigger>
-          </TabsList>
+          {/* SCROLL WRAPPER (prevents left-edge clipping) */}
+          <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList
+              className="rounded-2xl inline-flex min-w-max gap-1 sm:gap-2 px-2 py-1
+                   whitespace-nowrap"
+              aria-label="Profile sections"
+            >
+              <TabsTrigger
+                value="activity"
+                className="snap-start text-sm sm:text-base data-[state=active]:font-semibold"
+              >
+                Recent Activity
+              </TabsTrigger>
+              <TabsTrigger
+                value="achievements"
+                className="snap-start text-sm sm:text-base data-[state=active]:font-semibold"
+              >
+                Achievements
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="snap-start text-sm sm:text-base data-[state=active]:font-semibold"
+              >
+                Collaboration Requests
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="activity" className="mt-4">
-            <RecentActivity userId={userRedux.id} />
+            <div className="rounded-xl border bg-card p-3 sm:p-4">
+              <RecentActivity userId={userRedux.id} />
+            </div>
           </TabsContent>
 
           <TabsContent value="achievements" className="mt-4">
-            <AchievementsGrid />
+            {/* AchievementsGrid presumably handles its own layout; wrapper adds consistent padding */}
+            <div className="rounded-xl border bg-card p-3 sm:p-4">
+              <AchievementsGrid />
+            </div>
           </TabsContent>
-
 
           <TabsContent value="settings" className="mt-4">
             <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle>Collaboration Requests</CardTitle>
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg">Collaboration Requests</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {reqLoading && <div className="text-sm text-muted-foreground">Loading requests…</div>}
+
+              <CardContent className="space-y-3 sm:space-y-4">
+                {reqLoading && (
+                  <div className="text-sm text-muted-foreground">Loading requests…</div>
+                )}
                 {reqErr && <div className="text-sm text-destructive">{reqErr}</div>}
                 {!reqLoading && !reqErr && reqs.length === 0 && (
-                  <div className="text-sm text-muted-foreground">No pending collaboration requests.</div>
+                  <div className="text-sm text-muted-foreground">
+                    No pending collaboration requests.
+                  </div>
                 )}
 
-                <ul className="space-y-2">
+                <ul className="space-y-2 sm:space-y-3">
                   {reqs.map((r) => (
-                    <li key={r._id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 overflow-hidden rounded-full bg-muted">
+                    <li
+                      key={r._id}
+                      className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      {/* Left: avatar + titles */}
+                      <div className="flex items-start gap-3 sm:items-center">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 overflow-hidden rounded-full bg-muted flex-shrink-0">
                           {r.fromUser?.profileImage?.url ? (
                             <img
                               src={r.fromUser.profileImage.url}
-                              alt={r.fromUser.fullName}
+                              alt={r.fromUser.fullName ?? 'User avatar'}
                               className="h-full w-full object-cover"
+                              loading="lazy"
                             />
                           ) : null}
                         </div>
-                        <div>
-                          <div className="font-medium">{r.list?.title ?? "Untitled list"}</div>
-                          <div className="text-xs text-muted-foreground">Owner: {r.fromUser?.fullName ?? "Unknown"}</div>
+
+                        <div className="min-w-0">
+                          <div className="font-medium truncate max-w-[70vw] sm:max-w-xs">
+                            {r.list?.title ?? 'Untitled list'}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[70vw] sm:max-w-xs">
+                            Owner: {r.fromUser?.fullName ?? 'Unknown'}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {/* Right: actions (stack on mobile, inline on ≥sm) */}
+                      <div className="flex w-full sm:w-auto items-center gap-2">
                         <Button
                           size="sm"
-                          variant="default"
+                          className="flex-1 sm:flex-none"
                           onClick={() => acceptReq(r._id)}
                           disabled={actingId === r._id}
+                          aria-label={`Accept collaboration request for ${r.list?.title ?? 'this list'}`}
                         >
-                          {actingId === r._id ? "Accepting…" : "Accept"}
+                          {actingId === r._id ? 'Accepting…' : 'Accept'}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
+                          className="flex-1 sm:flex-none"
                           onClick={() => rejectReq(r._id)}
                           disabled={actingId === r._id}
+                          aria-label={`Reject collaboration request for ${r.list?.title ?? 'this list'}`}
                         >
-                          {actingId === r._id ? "Rejecting…" : "Reject"}
+                          {actingId === r._id ? 'Rejecting…' : 'Reject'}
                         </Button>
                       </div>
                     </li>
@@ -529,6 +574,7 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
     </div>
   );
 }
