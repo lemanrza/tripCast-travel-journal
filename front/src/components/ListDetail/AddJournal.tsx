@@ -1,5 +1,13 @@
 import * as React from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -10,7 +18,7 @@ export type CreateJournalPayload = {
   content: string;
   destination: string;
   public: boolean;
-  photos: File[]; 
+  photos: File[];
 };
 
 type Props = {
@@ -46,8 +54,11 @@ export default function AddJournalDialog({
   const setOpen = (v: boolean) => (isControlled ? onOpenChange!(v) : setInternalOpen(v));
 
   const reset = () => {
-    setTitle(""); setContent(""); setDestination(""); setIsPublic(false);
-    photos.forEach(p => URL.revokeObjectURL(p.url));
+    setTitle("");
+    setContent("");
+    setDestination("");
+    setIsPublic(false);
+    photos.forEach((p) => URL.revokeObjectURL(p.url));
     setPhotos([]);
   };
 
@@ -56,14 +67,19 @@ export default function AddJournalDialog({
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    setPhotos(prev => [...prev, ...files.map(f => ({ file: f, url: URL.createObjectURL(f) }))]);
+    setPhotos((prev) => [
+      ...prev,
+      ...files.map((f) => ({ file: f, url: URL.createObjectURL(f) })),
+    ]);
     e.target.value = "";
   };
 
   const removePhotoAt = (idx: number) => {
-    setPhotos(prev => {
+    setPhotos((prev) => {
       const next = [...prev];
-      try { URL.revokeObjectURL(next[idx].url); } catch {}
+      try {
+        URL.revokeObjectURL(next[idx].url);
+      } catch {}
       next.splice(idx, 1);
       return next;
     });
@@ -78,7 +94,7 @@ export default function AddJournalDialog({
         content: content.trim(),
         destination,
         public: isPublic,
-        photos: photos.map(p => p.file),
+        photos: photos.map((p) => p.file),
       });
       setOpen(false);
       reset();
@@ -97,13 +113,15 @@ export default function AddJournalDialog({
     >
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button className="gap-2">
+          {/* full width on mobile, auto on >= sm */}
+          <Button className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" /> {triggerLabel}
           </Button>
         </DialogTrigger>
       )}
 
-      <DialogContent className="sm:max-w-2xl">
+      {/* Responsive, scrollable dialog */}
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Write Journal Entry</DialogTitle>
           <DialogDescription>Share your experience for a destination.</DialogDescription>
@@ -118,19 +136,22 @@ export default function AddJournalDialog({
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
             >
-              <option value="" disabled>Select destination</option>
+              <option value="" disabled>
+                Select destination
+              </option>
               {destinations?.map((d) => {
                 const val = d.id || d._id || "";
                 return (
                   <option key={val} value={val}>
-                    {d.name}{d.country ? ` — ${d.country}` : ""}
+                    {d.name}
+                    {d.country ? ` — ${d.country}` : ""}
                   </option>
                 );
               })}
             </select>
           </div>
 
-          {/* Title */}
+          {/* Title + Content (stack on mobile, comfy spacing) */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Title *</p>
             <input
@@ -141,7 +162,6 @@ export default function AddJournalDialog({
             />
           </div>
 
-          {/* Content */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Content *</p>
             <textarea
@@ -156,19 +176,33 @@ export default function AddJournalDialog({
           {/* Photos */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Photos</p>
-            <div className="flex items-center gap-4">
-              <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <label className="inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
                 <span>Upload</span>
-                <input type="file" accept="image/*" multiple className="sr-only" onChange={onFiles} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={onFiles}
+                />
               </label>
               <p className="text-xs text-muted-foreground">{photos.length} selected</p>
             </div>
 
-            {photos.length > 0 && (
-              <div className="mt-2 grid grid-cols-3 gap-3">
+            {!!photos.length && (
+              <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                 {photos.map((p, idx) => (
-                  <div key={idx} className="relative h-24 w-full overflow-hidden rounded-md bg-muted">
-                    <img src={p.url} alt={`Photo ${idx + 1}`} className="h-full w-full object-cover" />
+                  <div
+                    key={idx}
+                    className="relative overflow-hidden rounded-md bg-muted aspect-square"
+                  >
+                    <img
+                      src={p.url}
+                      alt={`Photo ${idx + 1}`}
+                      className="h-full w-full object-cover"
+                    />
                     <button
                       type="button"
                       className="absolute right-1 top-1 rounded-md bg-background/80 px-2 py-1 text-xs"
@@ -183,12 +217,12 @@ export default function AddJournalDialog({
           </div>
 
           {/* Visibility */}
-          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border px-3 py-2">
             <div>
               <p className="text-sm font-medium">Make Public</p>
               <p className="text-xs text-muted-foreground">Allow others to view this entry.</p>
             </div>
-            <label className="inline-flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 self-start sm:self-auto">
               <input
                 type="checkbox"
                 className="h-4 w-4"
@@ -200,7 +234,8 @@ export default function AddJournalDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
+          {/* full width buttons on mobile for better tap targets */}
           <Button
             variant="secondary"
             onClick={() => {
@@ -208,10 +243,16 @@ export default function AddJournalDialog({
               reset();
             }}
             disabled={submitting}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button variant="default" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+          <Button
+            variant="default"
+            onClick={handleSubmit}
+            disabled={!canSubmit || submitting}
+            className="w-full sm:w-auto"
+          >
             {submitting ? "Saving..." : "Save Entry"}
           </Button>
         </DialogFooter>

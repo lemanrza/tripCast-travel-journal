@@ -252,7 +252,7 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
 
     try {
       const res = await controller.getOne(`${endpoints.users}/user/${id}`);
-      const data = res?.data ?? res; 
+      const data = res?.data ?? res;
 
       if (!data) return userOrId as any;
 
@@ -268,9 +268,9 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
   const handleAvatarClick = async (userOrId: any) => {
     const base =
       typeof userOrId === "string" ? findUserInGroup(userOrId) ?? { _id: userOrId } : userOrId;
-    setSelectedUser(base);    
-    const full = await fetchUserFull(base); 
-    setSelectedUser(full);    
+    setSelectedUser(base);
+    const full = await fetchUserFull(base);
+    setSelectedUser(full);
   };
 
   return (
@@ -281,51 +281,66 @@ export default function ChatBox({ onClose, groupId, token, meId }: Props) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 24, scale: 0.98 }}
         transition={{ type: "spring", stiffness: 380, damping: 28 }}
-        className="fixed bottom-4 right-4 flex h-140 w-100 flex-col rounded-xl border bg-white shadow-xl"
+        className="
+    fixed inset-x-2 bottom-2 top-16 z-50
+    flex flex-col rounded-xl border bg-white shadow-xl
+    pb-[env(safe-area-inset-bottom)]
+    sm:inset-x-4
+    md:inset-auto md:bottom-6 md:right-6 md:h-[78vh] md:w-[36rem]
+    lg:h-[80vh] lg:w-[25rem] overflow-hidden
+  "
         role="dialog"
         aria-label="Chat window"
       >
         <ChatHeader group={group} onInfo={() => setInfoOpen(true)} onClose={onClose} />
 
-        <MessageList
-          messages={messages}
-          meId={meId}
-          onReply={(m) => setReplyTo(m)}
-          onAvatarClick={handleAvatarClick}
-          getAuthorId={getAuthorId}
-          getAuthorObj={getAuthorObj}
-          timeLabel={messageTime}
-          preview={replyPreviewLabel}
-          listRef={listRef}
-        />
-
-        <div className="h-4 px-3 pb-1 text-xs text-gray-500">
-          {typingUsers.length ? `${typingUsers.length} typing…` : null}
+        {/* Scrollable messages */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-4">
+          <MessageList
+            messages={messages}
+            meId={meId}
+            onReply={(m) => setReplyTo(m)}
+            onAvatarClick={handleAvatarClick}
+            getAuthorId={getAuthorId}
+            getAuthorObj={getAuthorObj}
+            timeLabel={messageTime}
+            preview={replyPreviewLabel}
+            listRef={listRef}
+          />
         </div>
 
-        <RecordingBar
-          visible={isRecording}
-          seconds={recTime}
-          onCancel={cancelRecording}
-          onStop={stopRecording}
-        />
+        {/* Footer */}
+        <div className="sticky bottom-0 left-0 right-0 z-20 ">
+          <div className="h-4 px-3 pt-1 text-xs text-gray-500">
+            {typingUsers.length ? `${typingUsers.length} typing…` : null}
+          </div>
 
-        <ChatInput
-          input={input}
-          onChange={onInputChange}
-          onSend={onSend}
-          replyTo={replyTo}
-          onClearReply={() => setReplyTo(null)}
-          replyPreviewLabel={replyPreviewLabel}
-          getAuthorName={getAuthorName}
-          isRecording={isRecording}
-          onStartRecording={startRecording}
-          onCancelRecording={cancelRecording}
-          onPickFiles={() => fileInputRef.current?.click()}
-          fileInputRef={fileInputRef}
-          onFilesSelected={onFilesSelected}
-        />
+          <RecordingBar
+            visible={isRecording}
+            seconds={recTime}
+            onCancel={cancelRecording}
+            onStop={stopRecording}
+          />
+
+          <ChatInput
+            input={input}
+            onChange={onInputChange}
+            onSend={onSend}
+            replyTo={replyTo}
+            onClearReply={() => setReplyTo(null)}
+            replyPreviewLabel={replyPreviewLabel}
+            getAuthorName={getAuthorName}
+            isRecording={isRecording}
+            onStartRecording={startRecording}
+            onCancelRecording={cancelRecording}
+            onPickFiles={() => fileInputRef.current?.click()}
+            fileInputRef={fileInputRef}
+            onFilesSelected={onFilesSelected}
+          />
+        </div>
+
       </motion.div>
+
 
       {/* Profile preview modal */}
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>

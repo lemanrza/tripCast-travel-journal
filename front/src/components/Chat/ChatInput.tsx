@@ -37,7 +37,7 @@ export default function ChatInput({
   onFilesSelected,
 }: Props) {
   return (
-    <div className="border-t p-3">
+    <div className="border-t bg-white px-3 py-2">
       {replyTo && (
         <ReplyHeader
           message={replyTo}
@@ -48,35 +48,56 @@ export default function ChatInput({
       )}
 
       <div className="flex items-center gap-2">
+        {/* Attach */}
         <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+          type="button"
+          className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full border hover:bg-muted"
           title="Attach image/video"
+          aria-label="Attach image or video"
           onClick={onPickFiles}
         >
-          <ImageIcon className="h-4 w-4" />
+          <ImageIcon className="h-5 w-5 text-muted-foreground" />
         </button>
 
+        {/* Input */}
         <input
-          className="flex-1 rounded-lg border px-3 py-2 text-sm"
+          className="flex-1 min-w-0 h-10 rounded-full border px-4 text-sm
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                     placeholder:text-gray-400"
           value={input}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSend()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !isRecording) onSend();
+          }}
           placeholder="Type a message…"
+          aria-label="Type a message"
         />
 
-        <Button size="sm" onClick={onSend} disabled={isRecording}>
+        {/* Send (always visible) */}
+        <Button
+          size="sm"
+          onClick={onSend}
+          disabled={isRecording}
+          className="shrink-0 h-10 rounded-full px-4"
+          aria-label="Send message"
+        >
           Send
         </Button>
 
+        {/* Mic (toggle recording) */}
         <Button
+          type="button"
           size="icon"
           variant={isRecording ? "destructive" : "ghost"}
           onClick={() => (isRecording ? onCancelRecording() : onStartRecording())}
           title={isRecording ? "Cancel recording" : "Record voice"}
+          aria-label={isRecording ? "Cancel recording" : "Record voice"}
+          className="h-10 w-10 rounded-full"
         >
-          <Mic className="h-4 w-4" />
+          <Mic className="h-5 w-5" />
         </Button>
 
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -85,7 +106,6 @@ export default function ChatInput({
           className="hidden"
           onChange={onFilesSelected}
         />
-
       </div>
     </div>
   );

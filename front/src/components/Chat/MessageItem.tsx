@@ -25,15 +25,16 @@ export default function MessageItem({
 
   return (
     <div
-      className={`group relative flex items-end overflow-visible ${
+      className={`group relative flex items-end gap-2 overflow-visible ${
         isMe ? "justify-end" : "justify-start"
       }`}
     >
+      {/* Left avatar (other user) */}
       {!isMe && (
         <button
           type="button"
           onClick={() => onAvatarClick?.(author ?? m.author)}
-          className="mr-2 h-6 w-6 shrink-0 cursor-pointer rounded-full ring-1 ring-black/10 overflow-hidden grid place-items-center bg-gray-100 hover:scale-105 transition"
+          className="mr-1 h-8 w-8 sm:h-7 sm:w-7 shrink-0 rounded-full ring-1 ring-black/10 overflow-hidden grid place-items-center bg-gray-100 hover:scale-[1.03] transition"
           title={author?.fullName || "Profile"}
         >
           {author?.profileImage?.url ? (
@@ -52,36 +53,51 @@ export default function MessageItem({
 
       {/* Bubble */}
       <div
-        className={`relative max-w-[70%] rounded-lg p-2 text-sm ${
+        className={`relative max-w-[85%] md:max-w-[70%] rounded-lg p-2 text-sm break-words whitespace-pre-wrap ${
           isMe ? "rounded-br-none bg-blue-600 text-white" : "rounded-bl-none bg-gray-100"
         }`}
       >
         {m?.replyTo && <QuoteBlock replied={m.replyTo} preview={preview} />}
 
-        {hasMedia ? <MediaBubble m={m} /> : <div>{m?.body?.text}</div>}
+        {hasMedia ? (
+          <MediaBubble m={m} />
+        ) : (
+          <div className="leading-relaxed">{m?.body?.text}</div>
+        )}
 
+        {/* timestamp */}
         <div className="mt-1 text-right text-[10px] opacity-70">
           {timeLabel(m?.createdAt)}
         </div>
 
-        <button
-          type="button"
-          onClick={() => onReply(m)}
-          title="Reply"
-          aria-label="Reply"
-          className={`absolute -top-8 ${isMe ? "right-2" : "left-2"}
-            rounded-md border bg-white/90 px-2 py-1 text-xs shadow
-            opacity-0 transition-opacity group-hover:opacity-100
-            hover:bg-white text-gray-700 z-10`}
+        {/* ACTIONS: visible on mobile; hover-to-show on md+ */}
+        <div
+          className={`
+            mt-1 flex gap-1
+            md:mt-0 md:absolute md:-top-8 ${isMe ? "md:right-2" : "md:left-2"}
+            md:opacity-0 md:transition-opacity md:duration-150 md:group-hover:opacity-100
+            z-10
+          `}
         >
-          ↩︎ Reply
-        </button>
+          <button
+            type="button"
+            onClick={() => onReply(m)}
+            title="Reply"
+            aria-label="Reply"
+            className={`rounded-md border bg-white/90 px-2 py-1 text-xs shadow hover:bg-white
+              ${isMe ? "text-gray-700" : "text-gray-700"}`}
+          >
+            ↩︎ Reply
+          </button>
+          {/* add more actions here if needed */}
+        </div>
       </div>
 
+      {/* Right avatar (me) */}
       {isMe && (
         <button
           type="button"
-          className="ml-2 h-6 w-6 shrink-0 cursor-pointer rounded-full ring-1 ring-black/10 overflow-hidden grid place-items-center bg-gray-100 hover:scale-105 transition"
+          className="ml-1 h-8 w-8 sm:h-7 sm:w-7 shrink-0 rounded-full ring-1 ring-black/10 overflow-hidden grid place-items-center bg-gray-100 hover:scale-[1.03] transition"
           title={author?.fullName || "Profile"}
         >
           {author?.profileImage?.url ? (

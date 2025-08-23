@@ -246,46 +246,70 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
   return (
     <>
       {isOwner && (
-        <div className="mb-4 flex justify-end">
-          <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
-            <DialogTrigger>
-              <Button asChild variant="default" className="gap-2">
-                <div><Plus className="h-4 w-4" /> Add Destination</div>
+        <div className="mb-4 flex items-center justify-end">
+          <Dialog
+            open={addOpen}
+            onOpenChange={(o) => {
+              setAddOpen(o);
+              if (!o) resetAddForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              {/* full-width on mobile, auto on ≥sm */}
+              <Button variant="default" className="w-full sm:w-auto gap-2">
+                <Plus className="h-4 w-4" />
+                Add Destination
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-2xl">
+            {/* dialog constrained to viewport; scrolls internally */}
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add Destination</DialogTitle>
-                <DialogDescription>Fill in the details for the new destination.</DialogDescription>
+                <DialogDescription>
+                  Fill in the details for the new destination.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-5">
                 {/* Image */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Image</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    <div className="h-32 w-full sm:h-20 sm:w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                       {addForm.imageUrl ? (
-                        <img src={addForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
-                      ) : <span className="text-muted-foreground text-xs">No image</span>}
+                        <img
+                          src={addForm.imageUrl}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">No image</span>
+                      )}
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                    <label className="inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
                       <span>Upload</span>
-                      <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleFileChange}
+                      />
                     </label>
                   </div>
                 </div>
 
                 {/* Basics */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">Name *</p>
                     <input
                       className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                       placeholder="e.g., Paris"
                       value={addForm.name}
-                      onChange={(e) => setAddForm((s) => ({ ...s, name: e.target.value }))}
+                      onChange={(e) =>
+                        setAddForm((s) => ({ ...s, name: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -294,7 +318,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                       className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                       placeholder="e.g., France"
                       value={addForm.country}
-                      onChange={(e) => setAddForm((s) => ({ ...s, country: e.target.value }))}
+                      onChange={(e) =>
+                        setAddForm((s) => ({ ...s, country: e.target.value }))
+                      }
                     />
                   </div>
 
@@ -306,7 +332,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                       value={addForm.status}
                       onChange={(e) => handleStatusChange(e.target.value as any)}
                     >
-                      <option value="" disabled>Select status</option>
+                      <option value="" disabled>
+                        Select status
+                      </option>
                       <option value="wishlist">Wishlist</option>
                       <option value="planned">Planned</option>
                       <option value="completed">Completed</option>
@@ -316,28 +344,32 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
 
                 {/* Dates */}
                 {addForm.status === "planned" && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Planned Date *</p>
                       <input
                         type="date"
                         className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                         value={addForm.datePlanned}
-                        onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                        onChange={(e) =>
+                          setAddForm((s) => ({ ...s, datePlanned: e.target.value }))
+                        }
                       />
                     </div>
                   </div>
                 )}
 
                 {addForm.status === "completed" && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Planned Date *</p>
                       <input
                         type="date"
                         className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                         value={addForm.datePlanned}
-                        onChange={(e) => setAddForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                        onChange={(e) =>
+                          setAddForm((s) => ({ ...s, datePlanned: e.target.value }))
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -346,7 +378,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                         type="date"
                         className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                         value={addForm.dateVisited}
-                        onChange={(e) => setAddForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                        onChange={(e) =>
+                          setAddForm((s) => ({ ...s, dateVisited: e.target.value }))
+                        }
                       />
                     </div>
                   </div>
@@ -360,16 +394,31 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                     rows={4}
                     placeholder="Anything important about this destination..."
                     value={addForm.notes}
-                    onChange={(e) => setAddForm((s) => ({ ...s, notes: e.target.value }))}
+                    onChange={(e) =>
+                      setAddForm((s) => ({ ...s, notes: e.target.value }))
+                    }
                   />
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => { setAddOpen(false); resetAddForm(); }} disabled={isSubmitting}>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setAddOpen(false);
+                    resetAddForm();
+                  }}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
                   Cancel
                 </Button>
-                <Button variant="default" onClick={handleAdd} disabled={!canSubmit || isSubmitting}>
+                <Button
+                  variant="default"
+                  onClick={handleAdd}
+                  disabled={!canSubmit || isSubmitting}
+                  className="w-full sm:w-auto"
+                >
                   {isSubmitting ? "Adding..." : "Add"}
                 </Button>
               </DialogFooter>
@@ -378,13 +427,38 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
         </div>
       )}
 
-      <Card>
+      {/* DESTINATIONS */}
+      <Card className="p-3 sm:p-4">
         {Array.isArray(listData?.destinations) && listData!.destinations.length > 0 ? (
-          listData!.destinations.map((d: Destination) => (
-            <div key={getEntityId(d)} className="border-b last:border-b-0">
-              <DestinationCard dest={d} isOwner={isOwner} onEdit={openEdit} onDelete={handleDeleteDestination} />
-            </div>
-          ))
+          <div
+            className="
+              /* list on mobile */
+              divide-y sm:divide-y-0
+
+              /* grid on ≥sm */
+              sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4
+            "
+          >
+            {listData!.destinations.map((d: Destination) => (
+              <div
+                key={getEntityId(d)}
+                className="
+                  /* list item borders on mobile */
+                  py-3 first:pt-0 last:pb-0
+
+                  /* remove borders/spacing on grid */
+                  sm:py-0
+                "
+              >
+                <DestinationCard
+                  dest={d}
+                  isOwner={isOwner}
+                  onEdit={openEdit}
+                  onDelete={handleDeleteDestination}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="p-6 text-center text-muted-foreground">
             <p>No destinations yet. Click "Add Destination" to get started!</p>
@@ -393,8 +467,14 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
       </Card>
 
       {/* EDIT DESTINATION */}
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditTarget(null); }}>
-        <DialogContent className="sm:max-w-2xl">
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          setEditOpen(o);
+          if (!o) setEditTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Destination</DialogTitle>
             <DialogDescription>Update details for this destination.</DialogDescription>
@@ -404,27 +484,40 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
             {/* Image */}
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Image</p>
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="h-32 w-full sm:h-20 sm:w-32 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                   {editForm.imageUrl ? (
-                    <img src={editForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
-                  ) : (<span className="text-muted-foreground text-xs">No image</span>)}
+                    <img
+                      src={editForm.imageUrl}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground text-xs">No image</span>
+                  )}
                 </div>
-                <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
+                <label className="inline-flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-accent">
                   <span>Upload new</span>
-                  <input type="file" accept="image/*" className="sr-only" onChange={handleEditFileChange} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleEditFileChange}
+                  />
                 </label>
               </div>
             </div>
 
             {/* Basics */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">Name *</p>
                 <input
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                   value={editForm.name}
-                  onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, name: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -432,7 +525,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                 <input
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                   value={editForm.country}
-                  onChange={(e) => setEditForm((s) => ({ ...s, country: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, country: e.target.value }))
+                  }
                 />
               </div>
 
@@ -444,7 +539,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                   value={editForm.status}
                   onChange={(e) => handleEditStatusChange(e.target.value as any)}
                 >
-                  <option value="" disabled>Select status</option>
+                  <option value="" disabled>
+                    Select status
+                  </option>
                   <option value="wishlist">Wishlist</option>
                   <option value="planned">Planned</option>
                   <option value="completed">Completed</option>
@@ -454,28 +551,32 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
 
             {/* Dates */}
             {editForm.status === "planned" && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Planned Date *</p>
                   <input
                     type="date"
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                     value={editForm.datePlanned}
-                    onChange={(e) => setEditForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((s) => ({ ...s, datePlanned: e.target.value }))
+                    }
                   />
                 </div>
               </div>
             )}
 
             {editForm.status === "completed" && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Planned Date *</p>
                   <input
                     type="date"
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                     value={editForm.datePlanned}
-                    onChange={(e) => setEditForm((s) => ({ ...s, datePlanned: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((s) => ({ ...s, datePlanned: e.target.value }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -484,7 +585,9 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                     type="date"
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                     value={editForm.dateVisited}
-                    onChange={(e) => setEditForm((s) => ({ ...s, dateVisited: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((s) => ({ ...s, dateVisited: e.target.value }))
+                    }
                   />
                 </div>
               </div>
@@ -497,19 +600,36 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 rows={4}
                 value={editForm.notes}
-                onChange={(e) => setEditForm((s) => ({ ...s, notes: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((s) => ({ ...s, notes: e.target.value }))
+                }
               />
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setEditOpen(false); setEditTarget(null); }} disabled={savingEdit}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEditOpen(false);
+                setEditTarget(null);
+              }}
+              disabled={savingEdit}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button
               variant="default"
-              disabled={savingEdit || !editTarget || !editForm.name.trim() || !editForm.country.trim() || !editForm.status}
+              disabled={
+                savingEdit ||
+                !editTarget ||
+                !editForm.name.trim() ||
+                !editForm.country.trim() ||
+                !editForm.status
+              }
               onClick={handleEditDestination}
+              className="w-full sm:w-auto"
             >
               {savingEdit ? "Saving..." : "Save changes"}
             </Button>
