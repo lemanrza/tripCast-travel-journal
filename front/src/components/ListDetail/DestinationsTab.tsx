@@ -432,21 +432,17 @@ export default function DestinationsTab({ listId, listData, setListData, isOwner
         {Array.isArray(listData?.destinations) && listData!.destinations.length > 0 ? (
           <div
             className="
-              /* list on mobile */
               divide-y sm:divide-y-0
 
-              /* grid on ≥sm */
-              sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4
+              sm:grid sm:grid-cols-2 lg:grid-cols-1 sm:gap-4
             "
           >
             {listData!.destinations.map((d: Destination) => (
               <div
                 key={getEntityId(d)}
                 className="
-                  /* list item borders on mobile */
                   py-3 first:pt-0 last:pb-0
 
-                  /* remove borders/spacing on grid */
                   sm:py-0
                 "
               >

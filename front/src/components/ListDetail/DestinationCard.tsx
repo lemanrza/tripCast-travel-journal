@@ -16,7 +16,7 @@ export default function DestinationCard({ dest, isOwner, onEdit, onDelete }: Pro
   return (
     <Card className="overflow-hidden">
       {/* 1 col on mobile, 2 cols on md+ (fixed media column) */}
-      <div className="grid grid-cols-1 md:grid-cols-[320px,1fr]">
+      <div className="grid lg:grid-cols-2 md:grid-cols-1">
         {/* Media */}
         {dest?.image?.url ? (
           <img
@@ -24,7 +24,7 @@ export default function DestinationCard({ dest, isOwner, onEdit, onDelete }: Pro
             alt={dest.name || "Destination"}
             className="
               w-full object-cover
-              aspect-[16/9] md:aspect-auto md:h-full
+              aspect-[16/9] md:aspect-auto md:h-70 lg:h-70
             "
           />
         ) : (
